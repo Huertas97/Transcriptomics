@@ -3,3 +3,5 @@ En este repositorio la idea es que cada participante incorpore el código que em
 
 Enlace a los datos:
 https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi
+
+Enlace al paper: https://www.nature.com/articles/nature08543.pdf?proof=true
