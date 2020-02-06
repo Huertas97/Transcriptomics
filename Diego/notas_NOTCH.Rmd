@@ -1,0 +1,349 @@
+---
+title: "Notas Trabajo Transcriptómica: Direct inhibition of the NOTCH transcription factor complex"
+author: "Diego Mañanes"
+documentclass: article
+output:
+  pdf_document:
+    fig_caption: yes
+    keep_tex: yes
+    number_sections: yes
+    toc: yes
+    toc_depth: 3
+  html_document: 
+    number_sections: yes
+    self_contained: no
+    theme: united
+    toc: yes
+    toc_depth: 5  
+    toc_float: true
+    collapsed: no
+urlcolor: blue
+classoption: a4paper
+fontsize: 11pt
+geometry: margin=1in
+header-includes:
+  - \usepackage{graphicx}
+  - \usepackage{float}
+  - \usepackage{pdflscape}
+  - \newcommand{\blandscape}{\begin{landscape}}
+  - \newcommand{\elandscape}{\end{landscape}}
+---
+
+## Contexto
+
+Link al paper: <https://www.nature.com/articles/nature08543>
+
+### Información GEO
+
+Link: <https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE18198>
+
+#### Resumen
+
+De la base de datos GEO podemos extraer que los datos se tratan de perfiles
+de expresión génica de linfocitos T humanos (leucemia linfoblástica aguda) con
+DMSO (dimetilsulfóxido) o SAHM1 (Notch Transcription Factor Inhibitor). 
+  Es decir, vamos a tener los niveles de expresión de linfocitos T 
+en dos condiciones, dos tratamientos para ALL.
+
+Las proteínas NOTCH regulan las rutas de señalización incolucradas en la 
+diferenciación celular, proliferación y muerte. La sobreactivación de la señal
+de NOTCH ha sido observada en numerosos cánceres y se ha estudiado extensamente 
+en el contexto de leucemia linfoblástica aguda de linfocitos T (T-ALL) donde más
+del 50% de los pacientes presentan el gen NOTCH mutado. Pequeñas moléculas 
+moduladoras de estas proteínas podrñian ser importantes en el entendimiento del
+papel de las proteínas NOTCH en los procesos biológicos normales y malignos.
+
+Midieron los cambios globales en la expresión génica en las líneas celulares
+humanas HPB-ALL y KOPT-K1 (T-ALL) tras el tratamiento con DMSO o SAHM1, un 
+péptido alfa-hélice derivado de a proteína coactivadora MAML1.
+
+#### Diseño experimental
+
+Cultivos triplicados de HPB-ALL y KOPT-K1 se trataron con DMSO solo o con SAHM1 
+(20 uM) durante 24 horas. Se extrajo el total de RNA y se hibridó con microarrays 
+Affymetrix human U133 plus 2.0: tres arrays por tratamiento por línea celular
+para un total de 12 arrays. 
+
+* Plataforma: GPL57: [HG-U133_Plus_2] Affymetrix Human Genome U133 Plus 2.0 Array
+* Muestras: 3 muestras, una por cultivo celular. 
+
+### Información paper
+
+Vamos a hacer una especie de resumen del paper con cosas interesantes desde el 
+punto de vista de los análisis. 
+
+#### Introducción
+
+Las proteínas NOTCH participan en rutas conservadas que regulan la diferenciación
+celular, proliferación y muerte. Los receptores NOTCH de mamíferos son proteínas
+transmembrana que se encargan de llevar a cabo la señalización cuando son 
+activadas por ligandos de la familia delta, serrate o Lag-2. La unión a ligandos 
+con el dominio extracelular de NOTCH1 inicia una serie de evectos proteolíticos
+secuenciales catalizados respectivamente por una proteína de la familia ADAM y 
+un complejo $\gamma$-secretasa, resultando en la liberación citoplasmática del
+dominio intracelular de NOTCH1 (ICN1). INC1 es translocado entonces al núcleo y 
+se carga en el factor de transcripción de unión a DNA CSL. La unión entre CSL y 
+ICN1 crea un surco largo y poco profundo a lo largo de la interfaz de las dos 
+proteínas que sirve como superficie de unión para proteínas coactivadoras de la 
+familia MAML. El complejo ternario ICN-CSL-MAML resultante recluta el core de 
+la maquinaria de transcripción, llevando a cabo la expresión (activación) de los
+genes dependientes de NOTCH. 
+
+La duración y fuerza de la señalización de NOTCH está normalmente muy controlada. 
+Mientras mutaciones de pérdida de función han sido observadas en una variedad de 
+enfermedades, mutaciones de ganancia de función en la ruta NOTCH se relacionan
+causalmente con cancer. De hechO, NOTCH humano se descubrió por estar relacionado 
+con translocaciones cromosomales observadas en pacientes con T-ALL. A partir
+de entonces, se han descubierto varias mutaciones activadoras en NOTCH en más
+del 50% de los pacientes con T-ALL. 
+
+Con el fin de antagonizar la señalización de NOTCH, se han llevado intentos 
+basados en el bloqueo de la generación de ICN usando pequeñas moléculas 
+inhibidoras del complejo $\gamma$-secretasa (GSI). Estas moléculas no son 
+estrictamente específicas de NOTCH, ya que llevan a cabo el bloqueo indiscriminado
+de algunas rutas de señalización downstream de la $\gamma$-secretasa. 
+
+
+#### Stapled $\alpha$-helical peptides targeting the NOTCH complex
+
+Se ha observado que un fragmento dominante negtivo de MAML1 (residuos 13-74, dnMAML1) es
+antagonista de la señalización de NOTCH y la proliferación celular cuando es 
+expreado en las líneas celulares T-ALL. Dicha interacción se ha estudiado mediante
+análisis estructurales de rayos X, obervándose que dnMAML1 forma una
+$\alpha$-hélice continua que encaja con una ranura alargada ormada por el 
+ensamblaje de ICN1 y CSL. Esta interacción sugiere que la transactivación del
+complejo NOTCH puede ser un buen target mediante péptidos de este tipo, con esta forma.
+Proponen que el fragmento de dnMAML1 puede ser prevenido uniendo un MAML1 completo
+al complejo ICN1-CSL, provando así al complejo de su función como activador
+transcripcional a pesar de la presencia upstream de NOTCH. Dicho péptido puede
+formarse mediante la incorporación co-sintética de un aminoácido no natural, $S_5$,
+en las posiciones vecinas a lo lardo de una cara de la $\alpha$-hélice, seguido por
+un anillo de cierre olefina. 
+
+La estructura ternaria del complejo NOTCH fue usada como la base para el diseño 
+de una serie de péptidos derivados de MAML1 (SAHMs). Se diseñaron 6 péptidos 
+que juntos escanean por completo la superficie de de contacto de dnMAML1 con 
+ICN1-CSL. La evalucación funcional de estos péptidos les llevó a seleccionar 
+el péptido SAHM1, que se extiende del residuo Glu21 al Thr36. SAHM1 "grapada" 
+incrementa el caracter helicoidal más que cualquiera de sus contrapartes. 
+Como controeles específicos para los estudios funcionales, generaron péptidos 
+mutantes SAHM1-D1 y SAHM1-D1, así como dSAHM1, el correspondiente péptido
+en _Drosophila_. 
+
+#### SAHMs se unen al complejo ICN1-CSL competitivamente con MAML1
+
+La unión de SAHM al complejo NOTCH fue primeramente investigada usando un 
+ensallo pull-down _in vitro_ (mirar en el paper, coñazo).
+
+Hicieron estudios de unión mediante pull-down y mediante fluorescencia para ver
+si efectivamente SAHM se unen a las proteínas de la señalización de NOTCH. 
+
+
+#### SAHM1 reprime específicamente la expresión génica de NOTCH1
+
+Llevaron a cabo varios análisis:
+
+* Estudio por gen reportero: luciferasa y $\beta$-lacatamasa
+* RT-PCR
+
+**Gen reportero**
+
+Para explorar los efectos de SAHM en la actividad transcripcional, primero 
+utilizaron un ensaño de gen reportero en el que la luciferassa está
+transcripcionalmente regulada por la activación constitutiva de NOTCH1. El 
+tratamiento con SAHM1 resultó en una represión cercana a ser completa de la 
+actividad de la luciferasa, comparalble con un GSI conocido (DAPT, inhibidor de
+la gamma-secretasa). 
+
+**RT-PCR** 
+
+Estudiaron el efecto de SAHMs en la expresión de los genes target de NOTCH en 
+células T-ALL dependientes de NOTCH1, siendo cuentificado mediante RT-PCR. Una 
+línea T-ALL (KOPT-K1) conteniendo mutaciones activas en la heterodimerización 
+(HD) y degradación de dominios (PEST) de NOTCH1 fueron tratadas con SAHM1, SAHM1-D1 
+y vehículo (???). Se observó el decremento en la expresión de los genes target 
+de NOTCH HES1, MYC y DTX1 únicamente tras el tratamiento con SAHM1. Se observó un efecto 
+represivo consistente de SAHM1 en la expresión de genes dependientes de NOTCH1 
+en un panel de células T-ALL humanas, conteniendo diversos alelos NOTCH1 mutados.
+SAHM1 no tuvo efecto en la estabilidad de la proteína ICN1 comparado con DAPT, 
+apoyando la inhibición transcripcional downstream de la producción de ICN1. 
+
+
+#### SAHM1 dispara la supresión global de la señalización de NOTCH1: análisis de expresión génica
+
+Se ha demostrado recientemente que el perfil transcripcional establece 
+conectividad mecanicista entre compuestos diferentes que actúan sobre objetivos 
+comunes o vías de objetivos (copiado literal jaja).
+Análisis de enriquecimiento de genes (GSEA) ha emergido también como un 
+método robusto para cmoparar perfiles de expresión correspondientes a estados 
+celulares definidos. Integrando estas dos metodologías, se llevó a cabo un 
+análisis de expresión génica midiendo primero los efectos transcripcionales globales
+del tratamiento con SAHM1 y comparándolos con los producidos por el tratamiento 
+GSI (DAPT). 
+
+En primer lugar, analizaron por triplicado líneas celulares KOPT-K1 y HPB-ALL 
+con SAHM1 y fueron analizadas con microarrays de oligonucleótidos de Affymetrix. 
+Clustering jerárquico supervisado y ordenamiento por rank identificaron numerosos
+genes canónicos target de NOTCH incluyendo HES4, DTX1, HES1 y MYC entre el top 
+de genes down-regulados por SAHM1. 
+
+En segundo lugar, para comparar el set de genes down-regulados por tratamiento 
+con GSI en células T-ALL se llevó a cabo el reanálisis de perfiles de expresión
+públicos: GSI-NOTCH gene set. El enriquecimiento para este set de genes dentro
+del perfil de expresión SAHM1 fue estudiado mediante GSEA, revelando una fuerte
+correlación estadísticamente significante (enrichment score (ES) = -0.89, ES 
+normalizado (NES) = -3.66, P < 0.0001). Como medida de la especificidad biológica, 
+el análisis de enriquecimiento fue llevado a cabo en todos los genes target de 
+factores de transcripción disponibles en Molecular Signatures Database (MSigDB). 
+Teniéndolo en cuenta, el set de genes GSI-NOTCH emergió como outlier estadístico
+en la mayoría de los perfiles SAHM1 enriquecidos. Interesantemente, el análisis
+de genes reprimidos por SAHM1 también identificó enriquecimiento significante 
+para sets de genes regulados por activadores transcripcionales como MYC/MAX y E2S, que han 
+sido previamente identificados como targets downstream de NOTCH. 
+
+Teniendo en cuenta todos estos datos, se establece que SAHM1 e un antagonista
+específico sobre la expresión de genes controlados por NOTCH. 
+
+
+![Figura 1](/home/diego/Documentos/proyectos_master/proyectos_transcriptomica/trabajo_transcriptomica/figures/figure1.png)
+
+SAHM1 reprime la expresión de genes regulados por NOTCH1. 
+
+a. Inbhibición de reportero luciferasa NOTCH1-dependiente por péptidos SAHM. 
+b. Efectos dependientes de dosis de SAHM1 y SAHM1-D1 en ensayo de luciferasa dual,
+usando tres diluciones de ligandos comparadas con solo el vehículo. 
+c. Análisis qRT-PCR de los niveles de mRNAs de HES1, MYC y DTX1 en células 
+KOPT-K1 tratadas durante 24 horas con SAHM1 o SAHM1-D1 con control con DMSO. 
+d. Análisis qRT-PCR de niveles de mRNA de DTX1en un panel de células T-ALL 
+humanas. 
+e. Heat map de los 50 genes más down-regulados (P < 0.0001), inducidos por SAHM1
+en células KOPT-K1 y HPB-ALL. 
+f. Comparación cuantitativa de genes down-ergulados por GSI (GSI-NOTCH gene set)
+con el perfil de expresión de SAHM1 en células KOPT-K1 y HPB-ALL mediante GSEA. 
+g. Comparación de todos los genes target de factores de transcripción en 
+Molecular Signatures Database con el set de genes GSI-NOTCH para el 
+enriquecimiento en el perfil de expresión de SAHM1 por GSEA. Los datos son 
+ploteados como p-valores corregidos por FWER vs el NES. GSI-NOTCH es marcado 
+como el set de genes más enriquecido. 
+h. GSEA del segundo set de genes más enriquecidos (MYC/MAX) aplicado al perfil 
+de expresión de SAHM1. A menos que se indique lo contrario, los datos 
+representan la media +. s.c. (n = 3). *P<0.05, **P<0.01. 
+
+
+Creo que respecto expresión génica es lo único que hacen. Tanta historia pa' esto.
+
+
+## Análisis transcripcional
+
+```{r setup, echo=FALSE}
+
+projectPath <- file.path("/home/diego/Documentos/proyectos_master/proyectos_transcriptomica/trabajo_transcriptomica")
+
+analysisDir <- "microarray.Analysis"
+analysisPath <- file.path(projectPath, analysisDir)
+outputDir <- "FirstTest"
+outputPath <- file.path(analysisPath, outputDir)
+dataPath <- file.path(projectPath, "data")
+prefix <- "FirstTest"
+setwd(analysisPath)
+
+if (!dir.exists(outputPath) | !dir.exists(file.path(outputPath, "Plots"))) {
+  dir.create(outputPath, recursive = T)
+  dir.create(file.path(outputPath, "Plots"), showWarnings = F)
+}
+
+## Settings to knitr
+knitr::opts_chunk$set(
+    echo = FALSE,
+    fig.align = "center",
+    fig.path = file.path(outputPath, "Plots/"),
+    fig.pos = "H",
+    message = FALSE,
+    warning = FALSE,
+    comment = NA,
+    dev = c("jpeg"),
+    dpi = 300
+)
+
+library("affy")
+library("limma")
+library("genefilter")
+
+```
+
+### Carga de datos
+
+Cargamos los ficheros .CEL con la función ``ReadAffy`` del paquete ``affy``.
+Construímos el fichero _targets_ mediante un dataframe con información relativa
+a las muestras: condición y línea celular. 
+
+```{r readCEL}
+
+sample_names <- dir(dataPath, pattern = ".+\\.CEL$")
+
+dfTargets <- data.frame(FileName = sample_names,
+                        Condition = c(rep("DMSO", 6), rep("SAHM1", 6)),
+                        CellLine = rep(c(rep("KOPT-K1", 3), rep("HPB-ALL", 3)), 2),
+                        row.names = sample_names)
+
+rawDataAffy <- ReadAffy(filenames = dir(dataPath, pattern = ".+\\.CEL$", full.names = TRUE),
+                        phenoData = dfTargets)
+
+
+## Datos de expresión crudos
+head(rawDataAffy@assayData$exprs)
+
+```
+
+### Normalización de los datos
+
+Normalización de los datos a través de la función ``expresso`` del paquete 
+``limma``. El resultado es un objeto de la clase ``exprSet``. 
+
+```{r exprSetNorm}
+if (file.exists(file.path(outputPath, paste(prefix, "exprSet.Norm.rds", sep = ".")))) {
+  
+  message(paste("Load exprSet object with Normalized data from", 
+                file.path(outputPath, paste(prefix,"exprSet.Norm.rds", sep = "."))))
+  
+  exprSet <- readRDS(file = file.path(outputPath, paste(prefix, 
+                                                        "exprSet.Norm.rds", sep = ".")))
+  
+} else {
+  
+  exprSet <- expresso(rawDataAffy,
+                      bg.correct = TRUE, 
+                      bgcorrect.method="rma",
+                      normalize = TRUE, 
+                      normalize.method="quantiles", 
+                      pmcorrect.method="pmonly", 
+                      summary.method="medianpolish",
+                      verbose = TRUE)
+  
+  saveRDS(exprSet, file = file.path(outputPath, paste(prefix, 
+                                                        "exprSet.Norm.rds", sep = ".")))
+  
+}
+```
+
+### Boxplots de los datos antes vs después de normalizar
+
+```{r}
+boxplot(rawDataAffy,
+		 main="Boxplot Before Normalization",
+		 col = "lightgrey")
+
+exprseset <- as.data.frame(exprs(exprSet))		
+boxplot(data.frame(exprseset),
+		 main="Boxplot After Normalization (log scale)",
+		 col = "lightgrey")
+```
+
+
+
+
+```{r}
+op = par(mfrow = c(2,3))
+for (i in 1:12){image(rawDataAffy[,i],main=dfTargets$Condition[i])}
+```
+
