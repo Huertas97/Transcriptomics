@@ -103,7 +103,7 @@ mycols <- rep(usr.col, each = 3)
 
 ### Distribución de las intensidades
 
-```{r}
+```{r Distribucion-intensidades, message = FALSE, warning=FALSE}
 #########################
 # Intensity distributions
 #########################
@@ -438,19 +438,217 @@ celulares y luego comparar los genes diferencialmente expresados por separado.**
 * Normaliza conjuntamente aquello que vayas a comparar para encontrar genes
 diferencialmente expresados
 
-
-# Lineas celulares estudiadas por separado
-
+# Comparación controles
 
 ##  Cargamos los ficheros .CEL y extraemos el raw data
 
+Los ficheros control son:
+
+* KOPT-K1_DMSO $\rightarrow$ "GSM455115.CEL", "GSM455116.CEL", "GSM455117.CEL"
+
+* HPB-ALL_DMSO $\rightarrow$ "GSM455118.CEL", "GSM455119.CEL", "GSM455120.CEL"
+
+```{r cargamos-ficheros-CEL-control, warning=FALSE}
+
+# Read .CEL files 
+# data <- ReadAffy(filenames=targets$FileName)
+CELfiles_control <- c("GSM455115.CEL", "GSM455116.CEL", "GSM455117.CEL", "GSM455118.CEL", "GSM455119.CEL", "GSM455120.CEL")
+
+rawdata_control <- ReadAffy(filenames = CELfiles_control)
+rawdata_control
+```
+
+##  Análisis exploratorio de la calidad de los datos iniciales
+
+
+```{r}
+# Exploratory graphs that provide information about the quality of the arrays
+library("RColorBrewer")
+
+# Select 9 (maximum) different color in the palette Set1. Return them in a vector
+usr.col <- brewer.pal(9, "Set1")
+
+# Repeat each color three times, such there are three arrays per sample type
+mycols <- rep(usr.col, each = 3)
+```
+
+### Distribución de las intensidades
+
+```{r Distribucion-intensidades, message = FALSE, warning=FALSE}
+#########################
+# Intensity distributions
+#########################
+
+# Show intensity distributrions with hist function 
+hist(rawdata_control, lty = rep(1, length(CELfiles_control )), col = mycols,
+   main = "Intensity distributions Before Normalization")
+
+# Add legend in the top right corner 
+legend("topright", rownames(pData(rawdata_control)),
+       lty = rep(1, length(CELfiles_control )), 
+       col = mycols,
+       cex = 1)
+
+# Tema 19 página 637. Vemos que no hay problemas y que no tenemos que descartar
+# ningún array, aunque sí es importante normalizar. No hay ninguno con un valor
+# muy alto en log intensity. También vemos que todos tienen una distribución 
+# más o menos igual. 
+```
+
+Observamos que entre microarrays del tipo celular KOPT-T1 la distribución es muy parecida, pero en el caso del tipo celular HPB-ALL existen diferencias en la distribución entre microarrays, aunque nada preocupante. También se observa que la distribución entre tipos celulares es diferente. 
+
+### Boxplot
+
+```{r}
+#############################
+# boxplot antes de normalizar
+#############################
+
+boxplot(rawdata_control,
+        main="Boxplot Before Normalization",
+        col = mycols,
+        names = sampleNames(rawdata_control),
+        las = 2,  # vertical labels
+        cex.axis = 0.6, # size labels
+        yaxt = "n") # do not show y labels
+axis(2, cex.axis = 1) # plot y labels with higher size
+```
+
+Volvemos a observar los mismo que en el gráfico de las distribuciones de intensidades: existe mayor variación entre los microarrays pertenecientes al tipo celular HPB-ALL, que en el caso del tipo celular KOPT-K1. No obstante, no hay nada preocupante. 
+
+
+
+
+
+
+
+
+# Lineas celulares estudiadas por separado
+
+## Línea celular KOPT-K1
+
+Los ficheros control son:
+
+* KOPT-K1_DMSO $\rightarrow$ "GSM455115.CEL", "GSM455116.CEL", "GSM455117.CEL"
+
+* KOPT-K1_SAHM1 $\rightarrow$ "GSM455121.CEL", "GSM455122.CEL", "GSM455123.CEL"
+
+
+### Cargamos los ficheros .CEL y extraemos el raw data
+
+```{r cargamos-ficheros-CEL-control, warning=FALSE}
+
+# Read .CEL files 
+# data <- ReadAffy(filenames=targets$FileName)
+CELfiles_KOPT <- c("GSM455115.CEL", "GSM455116.CEL", "GSM455117.CEL", "GSM455121.CEL", "GSM455122.CEL", "GSM455123.CEL")
+
+rawdata_KOPT <- ReadAffy(filenames = CELfiles_KOPT)
+rawdata_KOPT
+```
+
+###  Análisis exploratorio de la calidad de los datos iniciales
+
+#### Distribución de las intensidades antes de normalizar
+
+```{r Distribucion-intensidades, message = FALSE, warning=FALSE}
+#########################
+# Intensity distributions
+#########################
+
+# Show intensity distributrions with hist function 
+hist(rawdata_KOPT, lty = rep(1, length(CELfiles_KOPT)), col = mycols,
+   main = "Intensity distributions KOPT-K1 Before Normalization")
+
+# Add legend in the top right corner 
+legend("topright", rownames(pData(rawdata_KOPT)),
+       lty = rep(1, length(CELfiles_KOPT)), 
+       col = mycols,
+       cex = 1)
+
+# Tema 19 página 637. Vemos que no hay problemas y que no tenemos que descartar
+# ningún array, aunque sí es importante normalizar. No hay ninguno con un valor
+# muy alto en log intensity. También vemos que todos tienen una distribución 
+# más o menos igual. 
+```
+
+#### Boxplot antes de normalizar
+
+```{r}
+#############################
+# boxplot antes de normalizar
+#############################
+
+boxplot(rawdata_KOPT,
+        main="Boxplot KOPT-K1 Before Normalization",
+        col = mycols,
+        names = sampleNames(rawdata_KOPT),
+        las = 2,  # vertical labels
+        cex.axis = 0.6, # size labels
+        yaxt = "n") # do not show y labels
+axis(2, cex.axis = 1) # plot y labels with higher size
+```
+
+
+
+## Línea celular HPB-ALL
+
+* HPB-ALL_DMSO $\rightarrow$ "GSM455118.CEL", "GSM455119.CEL", "GSM455120.CEL"
+
+* HPB-ALL_SAHM1 $\rightarrow$ "GSM455124.CEL", "GSM455125.CEL", "GSM455126.CEL"
+
+## Cargamos los ficheros .CEL y extraemos el raw data
+
+```{r cargamos-ficheros-CEL-control, warning=FALSE}
+
+# Read .CEL files 
+# data <- ReadAffy(filenames=targets$FileName)
+CELfiles_HPB <- c("GSM455118.CEL", "GSM455119.CEL", "GSM455120.CEL", "GSM455124.CEL", "GSM455125.CEL", "GSM455126.CEL")
+
+rawdata_HPB <- ReadAffy(filenames = CELfiles_HPB)
+rawdata_HPB
+```
 
 ##  Análisis exploratorio de la calidad de los datos iniciales
 
 ### Distribución de las intensidades antes de normalizar
 
+```{r Distribucion-intensidades, message = FALSE, warning=FALSE}
+#########################
+# Intensity distributions
+#########################
+
+# Show intensity distributrions with hist function 
+hist(rawdata_HPB, lty = rep(1, length(CELfiles_KOPT)), col = mycols,
+   main = "Intensity distributions KOPT-K1 Before Normalization")
+
+# Add legend in the top right corner 
+legend("topright", rownames(pData(rawdata_HPB)),
+       lty = rep(1, length(CELfiles_HPB)), 
+       col = mycols,
+       cex = 1)
+
+# Tema 19 página 637. Vemos que no hay problemas y que no tenemos que descartar
+# ningún array, aunque sí es importante normalizar. No hay ninguno con un valor
+# muy alto en log intensity. También vemos que todos tienen una distribución 
+# más o menos igual. 
+```
+
 ### Boxplot antes de normalizar
 
+```{r}
+#############################
+# boxplot antes de normalizar
+#############################
+
+boxplot(rawdata_KOPT,
+        main="Boxplot KOPT-K1 Before Normalization",
+        col = mycols,
+        names = sampleNames(rawdata_KOPT),
+        las = 2,  # vertical labels
+        cex.axis = 0.6, # size labels
+        yaxt = "n") # do not show y labels
+axis(2, cex.axis = 1) # plot y labels with higher size
+```
 
 ## Ver distintos procesos de Normalizacióm
 
