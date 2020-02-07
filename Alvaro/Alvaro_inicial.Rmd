@@ -1,0 +1,480 @@
+---
+title: "Alvaro_Inicial"
+author:
+- name: Álvaro Huertas García 
+  affiliation: Universidad Autonoma de Madrid (UAM)
+output:
+  BiocStyle::html_document:
+    css: "./css/style.css"
+    toc: true
+    toc_float: true
+    
+classoption: a4paper
+geometry: margin=3cm
+fontsize: 12pt
+abstract: |
+   Transcriptomics 
+   (Master's Degree in Bioinformatics and Computational Biology, Universidad 
+   Autónoma de Madrid).
+vignette: |
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+
+header-includes:
+  - \usepackage{amsmath}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Opcional
+
+```{r}
+rm(list=ls())
+load("Resultados_Alvaro.RData")
+```
+
+# Requisitos
+
+## Paquetes que hay que instalar
+
+```{r results = "hide", warning = FALSE, message = FALSE}
+# From Bioconductor
+if (!requireNamespace("BiocManager", quietly = TRUE))
+        install.packages("BiocManager")
+
+BiocManager::install("affy")
+BiocManager::install("limma")
+BiocManager::install("genefilter")
+```
+
+## Cargamos las librerías
+
+```{r message = FALSE, results='hide', warning=FALSE}
+# Load required libraries
+library("affy")
+library("limma")
+library("genefilter")
+library("BiocStyle")
+```
+
+## Eliminamos elementos del espacio
+Eliminamos todas los elementos del espacio por si queremos guardar el resultado de este script en una sesión
+
+```{r}
+# Remove previous loaded objects to avoid errors
+rm(list=ls())
+```
+
+# Temporal
+
+##  Cargamos los ficheros .CEL y extraemos el raw data
+
+```{r cargamos-ficheros-CEL, warning=FALSE}
+# Target file 
+targets <- readTargets("target.txt", row.names="FileName")
+
+# Check that the .CEL files available in the directory are the one expected
+CELfiles <- list.celfiles()
+CELfiles
+length(CELfiles) == 12
+
+# Read .CEL files 
+# data <- ReadAffy(filenames=targets$FileName)
+rawdata <- ReadAffy(filenames = CELfiles)
+rawdata
+```
+
+##  Análisis exploratorio de la calidad de los datos iniciales
+
+
+```{r}
+# Exploratory graphs that provide information about the quality of the arrays
+library("RColorBrewer")
+
+# Select 4 different color in the palette Set1. Return them in a vector
+usr.col <- brewer.pal(4, "Set1")
+
+# Repeat each color three times, such there are three arrays per sample type
+mycols <- rep(usr.col, each = 3)
+```
+
+### Distribución de las intensidades
+
+```{r}
+#########################
+# Intensity distributions
+#########################
+
+# Show intensity distributrions with hist function 
+hist(rawdata, lty = rep(1, length(CELfiles)), col = mycols,
+   main = "Intensity distributions Before Normalization")
+
+# Add legend in the top right corner 
+legend("topright", rownames(pData(rawdata)),
+       lty = rep(1, length(CELfiles)), 
+       col = mycols,
+       cex = 0.6)
+
+# Tema 19 página 637. Vemos que no hay problemas y que no tenemos que descartar
+# ningún array, aunque sí es importante normalizar. No hay ninguno con un valor
+# muy alto en log intensity. También vemos que todos tienen una distribución 
+# más o menos igual. 
+```
+
+### Boxplot
+
+```{r}
+#############################
+# boxplot antes de normalizar
+#############################
+
+boxplot(rawdata,
+        main="Boxplot Before Normalization",
+        col = mycols,
+        names = sampleNames(rawdata),
+        las = 2,  # vertical labels
+        cex.axis = 0.6, # size labels
+        yaxt = "n") # do not show y labels
+axis(2, cex.axis = 1) # plot y labels with higher size
+```
+
+
+## Normalización con RMA
+
+```{r}
+#4. Normalize with RMA 
+#generates object eset (class ExprSet), 
+#expresso function provides intensities in log scale
+eset <- expresso(rawdata,
+                 bg.correct = TRUE, 
+                 bgcorrect.method="rma", # corregir fondo
+                 normalize = TRUE, 
+                 normalize.method="quantiles", 
+                 pmcorrect.method="pmonly", # los que machean perfectamente
+                 summary.method="medianpolish", # resumeme por la mediana par aun mismo gen
+                 verbose = TRUE,
+) 
+```
+
+### Distribución de la intensidad tras la normalización 
+
+```{r message = FALSE}
+#########################
+# Intensity distributions
+#########################
+
+# Show intensity distributrions
+exprseset <- as.data.frame(exprs(eset))
+dens <- apply(data.frame(exprseset), 2, density)
+
+plot(NA, xlim=range(sapply(dens, "[", "x")), ylim=range(sapply(dens, "[", "y")))
+distribution <- mapply(lines, dens, col=mycols)
+
+# Add legend in the top right corner
+legend("topright", legend=names(dens), lty = rep(1, length(CELfiles)), col = mycols, cex = 0.6)
+```
+
+### Boxplots tras la normalización
+
+```{r}
+# boxplot de todos los genes después de normalizar
+exprseset <- as.data.frame(exprs(eset))	# cojo las intensidades normalizadas	
+boxplot(data.frame(exprseset),
+        main="Boxplot After Normalization (log scale)",
+        col = mycols,
+        names = sampleNames(rawdata),
+        las = 2,  # vertical labels
+        cex.axis = 0.6, # size labels
+        yaxt = "n") # do not show y labels
+axis(2, cex.axis = 1) # plot y labels with higher size
+```
+
+### Filtro del rango intercuartílico
+
+```{r}
+# boxplot de solo los genes normalizados con un ranog intercuartílico superior a 0.5 para que tengan variabilidad
+esetIQR <- varFilter(eset, var.func=IQR, var.cutoff=0.5, filterByQuantile=TRUE)
+
+## Comprobamos el filtro del rango intercuartílico
+dim(exprs(eset))
+dim(exprs(esetIQR))
+
+
+
+# boxplot de solo los genes normalizados con un ranog intercuartílico superior a 0.5 para que tengan variabilidad
+esetIQR <- varFilter(eset, var.func=IQR, var.cutoff=0.5, filterByQuantile=TRUE)
+
+exprseset <- as.data.frame(exprs(esetIQR))	# cojo las intensidades normalizadas	
+
+boxplot(data.frame(exprseset),
+        main="Boxplot After Normalization (log scale)",
+        col = mycols,
+        names = sampleNames(rawdata),
+        las = 2,  # vertical labels
+        cex.axis = 0.6, # size labels
+        yaxt = "n") # do not show y labels
+axis(2, cex.axis = 1) # plot y labels with higher size
+```
+
+
+
+
+
+## Expresión diferencial
+
+Generamos la matriz donde guardaremos el diseño experimental que empleará makeContrast para realizar la comparación de niveles de transcripción. A cada archivo .CEL le asigno un número en función del tratamiento y línea celular.
+
+* KOPT-K1_DMSO $\rightarrow$ 1
+
+* HPB-ALL_DMSO $\rightarrow$ 2
+
+* KOPT-K1_SAHM1 $\rightarrow$ 3
+
+* HPB-ALL_SAHM1 $\rightarrow$ 4
+
+```{r}
+# design<-cbind(C1=c(rep(1, 3), rep(0, 9)), C2=c(rep(0,3), rep(1, 3), rep(0, 6)), S1=c(rep(0, 6), rep(1, 3), rep(0, 3)), S2 = c(rep(0, 9), rep(1, 3)) )
+design <- model.matrix(~ 0+factor(c(1,1,1,2,2,2,3,3,3,4,4,4)))
+rownames(design)<-targets$FileName
+colnames(design) <- c("KOPT_DMSO", "HPB_DMSO", "KOPT_SAHM1", "HPB_SAHM1")
+```
+
+Realizamos el ajuste de cada grupo a una recta y realizamos el estudio de expresión diferencial empleando 
+la función * makeContrast *
+
+```{r}
+## ajustamos cada nube de puntos correspondiente a cada grupo a una recta
+fit<-lmFit(esetIQR,design)
+
+## establecemos las comparaciones que queremos realizar
+## Tenemos que dividir entre 2 para que tengan todos el mismo peso. Las dos últimas no tienen ningún sentido
+contrast.matrix <- makeContrasts(KOPT_DMSO - HPB_DMSO, # C1 - C2 # Ver si hay diferencia entre los controles
+                                 KOPT_SAHM1 - HPB_SAHM1, # S1 - S2 # Ver si hay diferencia entre los tratamientos
+                                 KOPT_SAHM1 - KOPT_DMSO, # S1 - C1 # Interesante
+                                 HPB_SAHM1 - HPB_DMSO,    # S2 - C2 # Interesante
+                                 ((KOPT_SAHM1 + HPB_SAHM1)/2) - ((KOPT_DMSO + HPB_DMSO)/2), # (S1 + S2) - (C1 + C2)
+                                 ((KOPT_SAHM1 + HPB_SAHM1)/2) - KOPT_DMSO,  # (S1 + S2) - C1 No tiene sentido
+                                 ((KOPT_SAHM1 + HPB_SAHM1)/2) - HPB_DMSO, # (S1 + S2) - C2 No tiene sentido
+                                 levels=design)
+
+## comparamos las regresiones lineales según el patrón de contraste pedido
+fit2 <- contrasts.fit(fit, contrast.matrix)
+
+fit2<-eBayes(fit2)
+```
+
+
+
+
+```{r}
+#Table with DEGs results number te cogerá todos los genes (filas) que tenia esetIQR
+
+toptableIQR<-topTable(fit2, number=dim(exprs(esetIQR))[1], adjust.method="BH", coef = 3,  sort.by="p") # para poder ordenar por "p" necesito poner el coeficiente, es decir, que sepa que comparación debe coger
+# toptableIQR<-toptable(fit2, number=dim(exprs(esetIQR))[1], adjust.method="BH", sort.by="p", coef = 1) DESAPARECERÁ
+
+head(toptableIQR)
+
+```
+
+Ahora quiero quedarme solo con los genes que cumplan un FDR<0.05 (adjusted P-value)
+```{r}
+Results.fdr.005.table<-subset(toptableIQR, toptableIQR$adj.P.Val<=0.05)
+dim(Results.fdr.005.table)
+```
+
+
+Opcional
+
+```{r}
+# save.image(file = "Resultados_Alvaro.RData")
+```
+
+## Incorporación de los nombres de los genes
+
+```{r, results=FALSE, message=FALSE}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+        install.packages("BiocManager")
+
+BiocManager::install("hgu133plus2.db")
+```
+
+```{r, message=FALSE, results=FALSE, warning=FALSE}
+library("hgu133plus2.db")
+```
+
+```{r}
+Results.fdr.005.table<-subset(toptableIQR, toptableIQR$adj.P.Val<=0.05)
+
+# Recuperamos los nombres de las sondas de los diferentes spots del microarray
+probenames.fdr.005<-as.character(rownames(Results.fdr.005.table))
+head(probenames.fdr.005)
+
+# Recuperamos la lista de genes asociados a las diferentes sondas del microarray
+list.GeneSymbol.fdr.005<-mget(probenames.fdr.005, hgu133plus2SYMBOL)
+head(list.GeneSymbol.fdr.005)
+
+# ahora mostrmos solo los nombres de los genes
+char.GeneSymbol.fdr.005<- as.character(list.GeneSymbol.fdr.005)
+head(char.GeneSymbol.fdr.005)
+
+# Añadimos al data frame la columna con los nombres de los genes
+toptable.annotated<-cbind(Results.fdr.005.table,char.GeneSymbol.fdr.005)
+head(toptable.annotated)
+```
+
+Reordenamos las columnas colocando la nueva columna con los nombres de los genes en primer lugar
+
+```{r}
+# Change name column added
+colnames(toptable.annotated)[length(colnames(toptable.annotated))] <- "Gene_Name"
+
+# Get column names
+colnames(toptable.annotated)
+
+# Reordering colnumns by positions. We want "Gene_names" as the second column
+
+toptable.annotated<- toptable.annotated[, c("Gene_Name", "logFC", "AveExpr", "t", "P.Value", "adj.P.Val", "B")]
+head(toptable.annotated)
+  
+
+```
+
+
+
+# Diseño del trabajo de análisis
+
+## Diseño del análisis
+
+Para el trabajo será interesante realizar dos tipos de estudios:
+
+**1. Podemos analizar las dos líneas por separado y ver si sacamos los mismos
+resultados, lo que indicaría que las dos líneas celulares son equivalentes, pero
+si salen resultados diferentes podemos concluir que son líneas independientes**
+
+**2. Podemos juntar las dos líneas celulares y comparar simplemente el efecto de 
+los tratamientos DMSO y SAMH1.** Aquí estaríamos comprobando si hay un efecto o 
+patrón común en ambas líneas celulares.
+
+
+
+También vemos que los arrays de las dos líneas muestran diferencias tras la normalización, 
+independientemente del tratamiento. Es decir, vemos que los boxplots las muestras de la línea
+KOPT-K1 
+
+## Lineas celulares estudiadas por separado: KOPT-K1_SAHM1 vs KOPT-K1_DMSO y HPB-ALL_SAHM1 vs HPB-ALL_DMSO
+
+Aquí la hipótesis es que las líneas celulares afectan a la expresión de genes y,
+por tanto, es necesario estudiar de forma independiente (separada) las líneas
+celulares. Para ello debo normalizar y comparar por separado cada línea celular. 
+
+Si el resultado de la lista de genes diferencialmente expresados es similar entre
+ambas líneas celulares es que ambas líneas celulares se comportan igual. Si no, 
+indica que se comportan de forma diferente y no se pueden agrupar. 
+
+**¿En qué caso puedo comparar los controles entre tipos celulares y los tratamientos
+de SAHM1 entre tipos celulares?**
+Es decir, lo que quiero es ver si hay diferencia entre los controles y ver si
+hay diferencias entre los tratamientos. 
+
+**Lo más interesante creo que sería comparar los controles, porque ya te
+dice si en condiciones normales los genes que se expresan son diferentes o no **
+
+Estudiar la diferencia entre los tratamientos entre distintos tipos celulares 
+directamente sería incorrecto, porque precisamente necesitas un control, que es 
+lo que precisamente hacemos antes. 
+
+
+**Conclusión**:
+
+1. Primero veremos si hay grandes diferencias entre los controles KOPT-K1_DMSO y
+HPB-ALL_DMSO. Esto es un estudio inicial para ver si ya se observan diferencias 
+entre ambas líneas celulares. $\rightarrow$ $H_{0}:$ las dos líneas celulares
+son iguales. Vemos boxplot y distribución de intensidades. Normalizamos. Análisis
+de expresión diferencial. Ver si hay diferencias. 
+
+2. Tras la aproximación inicial en la que vemos si las líneas celulares son iguales
+o no hacemos el estudio independiente. 
+
+3. 
+
+
+## Líneas celulares estudiadas conjuntamente: DMSO vs SAHM1
+
+Aquí la hipótesis es que las líneas celulares se comportan igual en ambos escenarios
+(tratamiento con DMSO y tratamiento con SAHM1). Comprobaremos que patrón común 
+presentan ambas líneas celulares, es decir, que genes se encuentran diferencialmente
+expresados en DMSO con respecto a SAHM1 independientemente del tipo celular utilizado. 
+
+**¿Es correcto este estudio?**
+Considero que primero hay que estudiar por separado las dos líneas celulares y, 
+si vemos que los genes que se encuentran diferencialmente expresados en las dos
+líneas celulares son prácticamente los mismos, podemos proponer que la línea celular
+no afecta. Por tanto, diríamos que hacer el estudio agrupando las líneas celulares
+sería correcto. En caso de que por separado encontramos diferencias, sería
+incorrecto agrupar las dos líneas celulares. 
+
+
+En este caso la normalización debería hacerse con las 12 muestras a la vez, porque
+para obtener la lista de genes diferencialmente expresados voy a comparar los 6
+microarrays de SAHM1 vs los 6 microarrays de DMSO y aquí (como no me importa de
+qué tipo celular provenga la muestra) sí que necesito que la normalización se
+realice conjuntamente.
+
+**Conclusión**
+* Los arrays que vayas a usar para comparar y obtener la lista de genes diferencialmente
+expresados tienes que normalizarlos conjuntamente. 
+
+* Puedes comparar los resultados de las listas de genes diferencialmente expresados
+entre los dos tipos celulares habiendo normalizado los arrays por separado.
+Porque la lista de genes diferencialmente expresados ya es el resultado final, que 
+has sacado normalizando entre los arrays correspondientes. Cuando comparas las
+listas de genes diferencialmente expresados, lo que estás haciendo es comparar las 
+dos líneas celulares, y **sería incorrecto normalizar conjuntamente ambos tipos 
+celulares y luego comparar los genes diferencialmente expresados por separado.**
+
+* Normaliza conjuntamente aquello que vayas a comparar para encontrar genes
+diferencialmente expresados
+
+
+# Lineas celulares estudiadas por separado
+
+
+##  Cargamos los ficheros .CEL y extraemos el raw data
+
+
+##  Análisis exploratorio de la calidad de los datos iniciales
+
+### Distribución de las intensidades antes de normalizar
+
+### Boxplot antes de normalizar
+
+
+## Ver distintos procesos de Normalizacióm
+
+## Normalización con RMA
+
+### Distribución de la intensidad tras la normalización 
+
+### Boxplots tras la normalización
+
+### Filtro del rango intercuartílico
+
+
+## Expresión diferencial
+
+
+## Filtro por FDR < 0.05 para quedarme con los genes significativos
+
+
+
+## Incorporación de los nombres de los genes SYMBOL
+
+## GSEA
+
+
+
+
+
