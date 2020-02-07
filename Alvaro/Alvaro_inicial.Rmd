@@ -474,7 +474,7 @@ mycols <- rep(usr.col, each = 3)
 
 ### Distribución de las intensidades
 
-```{r Distribucion-intensidades, message = FALSE, warning=FALSE}
+```{r Distribucion-intensidades-control, message = FALSE, warning=FALSE}
 #########################
 # Intensity distributions
 #########################
@@ -516,11 +516,150 @@ axis(2, cex.axis = 1) # plot y labels with higher size
 
 Volvemos a observar los mismo que en el gráfico de las distribuciones de intensidades: existe mayor variación entre los microarrays pertenecientes al tipo celular HPB-ALL, que en el caso del tipo celular KOPT-K1. No obstante, no hay nada preocupante. 
 
+## Normalización con RMA
+
+```{r Normalizacion-RMA-control}
+#4. Normalize with RMA 
+#generates object eset (class ExprSet), 
+#expresso function provides intensities in log scale
+eset_control <- expresso(rawdata_control,
+                 bg.correct = TRUE, 
+                 bgcorrect.method="rma", # corregir fondo
+                 normalize = TRUE, 
+                 normalize.method="quantiles", 
+                 pmcorrect.method="pmonly", # los que machean perfectamente
+                 summary.method="medianpolish", # resumeme por la mediana par aun mismo gen
+                 verbose = TRUE,
+) 
+```
+
+### Distribución de la intensidad tras la normalización 
+
+```{r control-intensity-normalizado, message = FALSE}
+#########################
+# Intensity distributions
+#########################
+
+# Show intensity distributrions
+exprseset_control <- as.data.frame(exprs(eset_control)) # cojo las intensidades normalizadas
+dens_control <- apply(data.frame(exprseset_control), 2, density)
+
+plot(NA, xlim=range(sapply(dens_control, "[", "x")), 
+     ylim=range(sapply(dens_control, "[", "y")),
+     main = "Intensity distributions controls After Normalization",
+     xlab = "log intensity", ylab = "density")
+distribution_control <- mapply(lines, dens_control, col=c(rep(mycols[1], 3), rep(mycols[4], 3)), lwd = 1)
+
+# Add legend in the top right corner
+legend("topright", legend=names(dens_control), lty = rep(1, length(CELfiles_control)), col = mycols, cex = 1)
+```
+
+### Boxplots tras la normalización
+
+```{r control-boxplot-normalizado}
+# boxplot de todos los genes después de normalizar
+boxplot(data.frame(exprseset_control),
+        main="Boxplot Controls After Normalization (log scale)",
+        col = mycols,
+        names = sampleNames(rawdata_control),
+        las = 2,  # vertical labels
+        cex.axis = 0.6, # size labels
+        yaxt = "n") # do not show y labels
+axis(2, cex.axis = 1) # plot y labels with higher size
+```
+
+### Filtro del rango intercuartílico
+
+```{r control-IQR}
+# boxplot de solo los genes normalizados con un ranog intercuartílico superior a 0.5 para que tengan variabilidad
+esetIQR_control <- varFilter(eset_control, var.func=IQR, var.cutoff=0.5, filterByQuantile=TRUE)
+
+## Comprobamos el filtro del rango intercuartílico
+dim(exprs(eset_control))
+dim(exprs(esetIQR_control))
+
+
+
+# boxplot de solo los genes normalizados con un ranog intercuartílico superior a 0.5 para que tengan variabilida
+exprsesetIQR_control <- as.data.frame(exprs(esetIQR_control))
+
+boxplot(data.frame(exprsesetIQR_control),
+        main="Boxplot Controls After Normalization and IQR filter (log scale)",
+        col = mycols[1:6],
+        names = sampleNames(rawdata_control),
+        las = 2,  # vertical labels
+        cex.axis = 0.6, # size labels
+        yaxt = "n") # do not show y labels
+axis(2, cex.axis = 1) # plot y labels with higher size
+```
 
 
 
 
+## Expresión diferencial
 
+### Análisis estadístico
+
+Generamos la matriz donde guardaremos el diseño experimental que empleará _makeContrast_ 
+para realizar la comparación de niveles de transcripción. A cada archivo .CEL 
+le asigno un número en función del tratamiento y línea celular.
+
+* KOPT-K1_DMSO $\rightarrow$ 1
+
+* HPB-ALL_DMSO $\rightarrow$ 2
+
+
+```{r}
+
+# Generamos la matriz de diseño experimental
+design_control <- model.matrix(~ 0+factor(c(1,1,1,2,2,2)))
+rownames(design_control)<-sampleNames(rawdata_control)
+colnames(design_control) <- c("KOPT_DMSO", "HPB_DMSO")
+```
+
+Realizamos el ajuste de cada grupo a una recta y realizamos el estudio de expresión diferencial empleando 
+la función *makeContrast*
+
+```{r}
+## ajustamos cada nube de puntos correspondiente a cada grupo a una recta
+fit_control <- lmFit(esetIQR_control, design_control)
+
+## establecemos las comparaciones que queremos realizar
+## Tenemos que dividir entre 2 para que tengan todos el mismo peso. Las dos últimas no tienen ningún sentido
+contrast.matrix_control <- makeContrasts(KOPT_DMSO - HPB_DMSO, # C1 - C2 # Ver si hay diferencia entre los controles
+                                 levels=design)
+
+## comparamos las regresiones lineales según el patrón de contraste pedido
+fit2_control <- contrasts.fit(fit_control, contrast.matrix_control)
+
+fit2_control<-eBayes(fit2_control)
+```
+
+
+
+
+```{r}
+#Table with DEGs results number te cogerá todos los genes (filas) que tenia esetIQR
+
+toptableIQR_control<-topTable(fit2_control, number=dim(exprs(esetIQR_control))[1],
+                              adjust.method="BH", coef = 1,  sort.by="p") 
+# para poder ordenar por "p" necesito poner el coeficiente, es decir, que sepa que comparación debe coger
+
+head(toptableIQR_control)
+
+```
+
+Ahora quiero quedarme solo con los genes que cumplan un FDR<0.05 (adjusted P-value)
+
+```{r}
+Control.fdr.005.table<-subset(toptableIQR_control, 
+                              toptableIQR_control$adj.P.Val<=0.05)
+dim(Control.fdr.005.table)
+```
+
+
+Hemos pasado de 54675 genes iniciales a 27335 tras el filtro IR y, finalmente,
+a 20612 genes tras el filtro de FDR. 
 
 
 # Lineas celulares estudiadas por separado
@@ -536,7 +675,7 @@ Los ficheros control son:
 
 ### Cargamos los ficheros .CEL y extraemos el raw data
 
-```{r cargamos-ficheros-CEL-control, warning=FALSE}
+```{r cargamos-ficheros-CEL-KOPT, warning=FALSE}
 
 # Read .CEL files 
 # data <- ReadAffy(filenames=targets$FileName)
@@ -550,7 +689,7 @@ rawdata_KOPT
 
 #### Distribución de las intensidades antes de normalizar
 
-```{r Distribucion-intensidades, message = FALSE, warning=FALSE}
+```{r Distribucion-intensidades-KOPT, message = FALSE, warning=FALSE}
 #########################
 # Intensity distributions
 #########################
@@ -573,7 +712,7 @@ legend("topright", rownames(pData(rawdata_KOPT)),
 
 #### Boxplot antes de normalizar
 
-```{r}
+```{r KOPT-boxplot_no_normalizado}
 #############################
 # boxplot antes de normalizar
 #############################
@@ -590,6 +729,86 @@ axis(2, cex.axis = 1) # plot y labels with higher size
 
 
 
+## Normalización con RMA
+
+```{r Normalizacion-RMA-KOPT}
+#4. Normalize with RMA 
+#generates object eset (class ExprSet), 
+#expresso function provides intensities in log scale
+eset_KOPT <- expresso(rawdata_KOPT,
+                 bg.correct = TRUE, 
+                 bgcorrect.method="rma", # corregir fondo
+                 normalize = TRUE, 
+                 normalize.method="quantiles", 
+                 pmcorrect.method="pmonly", # los que machean perfectamente
+                 summary.method="medianpolish", # resumeme por la mediana par aun mismo gen
+                 verbose = TRUE,
+) 
+```
+
+### Distribución de la intensidad tras la normalización 
+
+```{r KOPT-intensity-normalizado, message = FALSE}
+#########################
+# Intensity distributions
+#########################
+
+# Show intensity distributrions
+exprseset_KOPT <- as.data.frame(exprs(eset_KOPT)) # cojo las intensidades normalizadas
+dens_KOPT <- apply(data.frame(exprseset_KOPT), 2, density)
+
+plot(NA, xlim=range(sapply(dens_KOPT, "[", "x")), ylim=range(sapply(dens_KOPT, "[", "y")),
+     main = "Intensity distributions KOPT-K1 After Normalization",
+     xlab = "log intensity", ylab = "density")
+distribution_KOPT <- mapply(lines, dens_KOPT, 
+                            col=c(rep(mycols[1], 3), rep(mycols[4], 3)), lwd = 1)
+
+# Add legend in the top right corner
+legend("topright", legend=names(dens_KOPT), lty = rep(1, length(CELfiles_KOPT)), col = mycols, cex = 1)
+```
+
+### Boxplots tras la normalización
+
+```{r KOPT-boxplot-normalizado}
+# boxplot de todos los genes después de normalizar
+boxplot(data.frame(exprseset_KOPT),
+        main="Boxplot KOPT-K1 After Normalization (log scale)",
+        col = mycols,
+        names = sampleNames(rawdata_KOPT),
+        las = 2,  # vertical labels
+        cex.axis = 0.6, # size labels
+        yaxt = "n") # do not show y labels
+axis(2, cex.axis = 1) # plot y labels with higher size
+```
+
+
+
+### Filtro del rango intercuartílico
+
+```{r KOPT-K1-IQR}
+# boxplot de solo los genes normalizados con un ranog intercuartílico superior a 0.5 para que tengan variabilidad
+esetIQR_KOPT <- varFilter(eset_KOPT, var.func=IQR, var.cutoff=0.5, filterByQuantile=TRUE)
+
+## Comprobamos el filtro del rango intercuartílico
+dim(exprs(eset_KOPT))
+dim(exprs(esetIQR_KOPT))
+
+
+
+# boxplot de solo los genes normalizados con un ranog intercuartílico superior a 0.5 para que tengan variabilidad
+exprsesetIQR_KOPT <- as.data.frame(exprs(esetIQR_KOPT))
+
+boxplot(data.frame(exprsesetIQR_KOPT),
+        main="Boxplot KOPT-K1 After Normalization and IQR filter (log scale)",
+        col = mycols,
+        names = sampleNames(rawdata_KOPT),
+        las = 2,  # vertical labels
+        cex.axis = 0.6, # size labels
+        yaxt = "n") # do not show y labels
+axis(2, cex.axis = 1) # plot y labels with higher size
+```
+
+
 ## Línea celular HPB-ALL
 
 * HPB-ALL_DMSO $\rightarrow$ "GSM455118.CEL", "GSM455119.CEL", "GSM455120.CEL"
@@ -598,7 +817,7 @@ axis(2, cex.axis = 1) # plot y labels with higher size
 
 ## Cargamos los ficheros .CEL y extraemos el raw data
 
-```{r cargamos-ficheros-CEL-control, warning=FALSE}
+```{r cargamos-ficheros-CEL-HPB, warning=FALSE}
 
 # Read .CEL files 
 # data <- ReadAffy(filenames=targets$FileName)
@@ -612,14 +831,14 @@ rawdata_HPB
 
 ### Distribución de las intensidades antes de normalizar
 
-```{r Distribucion-intensidades, message = FALSE, warning=FALSE}
+```{r Distribucion-intensidades-HPB, message = FALSE, warning=FALSE}
 #########################
 # Intensity distributions
 #########################
 
 # Show intensity distributrions with hist function 
 hist(rawdata_HPB, lty = rep(1, length(CELfiles_KOPT)), col = mycols,
-   main = "Intensity distributions KOPT-K1 Before Normalization")
+   main = "Intensity distributions HPB-ALL Before Normalization")
 
 # Add legend in the top right corner 
 legend("topright", rownames(pData(rawdata_HPB)),
@@ -635,15 +854,15 @@ legend("topright", rownames(pData(rawdata_HPB)),
 
 ### Boxplot antes de normalizar
 
-```{r}
+```{r boxplot-HPB_no-normalizado}
 #############################
 # boxplot antes de normalizar
 #############################
 
-boxplot(rawdata_KOPT,
-        main="Boxplot KOPT-K1 Before Normalization",
+boxplot(rawdata_HPB,
+        main="Boxplot HPB-ALL Before Normalization",
         col = mycols,
-        names = sampleNames(rawdata_KOPT),
+        names = sampleNames(rawdata_HPB),
         las = 2,  # vertical labels
         cex.axis = 0.6, # size labels
         yaxt = "n") # do not show y labels
@@ -654,12 +873,81 @@ axis(2, cex.axis = 1) # plot y labels with higher size
 
 ## Normalización con RMA
 
+```{r Normalizacion-RMA-HPB}
+#4. Normalize with RMA 
+#generates object eset (class ExprSet), 
+#expresso function provides intensities in log scale
+eset_HPB <- expresso(rawdata_HPB,
+                 bg.correct = TRUE, 
+                 bgcorrect.method="rma", # corregir fondo
+                 normalize = TRUE, 
+                 normalize.method="quantiles", 
+                 pmcorrect.method="pmonly", # los que machean perfectamente
+                 summary.method="medianpolish", # resumeme por la mediana par aun mismo gen
+                 verbose = TRUE,
+) 
+```
+
 ### Distribución de la intensidad tras la normalización 
+
+```{r HPB-intensity-normalizado, message = FALSE}
+#########################
+# Intensity distributions
+#########################
+
+# Show intensity distributrions
+exprseset_HPB <- as.data.frame(exprs(eset_HPB)) # cojo las intensidades normalizadas
+dens_HPB <- apply(data.frame(exprseset_HPB), 2, density)
+
+plot(NA, xlim=range(sapply(dens_HPB, "[", "x")), ylim=range(sapply(dens_HPB, "[", "y")),
+     main = "Intensity distributions HPB-ALL After Normalization",
+     xlab = "log intensity", ylab = "density")
+distribution_HPB <- mapply(lines, dens_HPB, col=c(rep(mycols[1], 3), rep(mycols[4], 3)), lwd = 1)
+
+# Add legend in the top right corner
+legend("topright", legend=names(dens_HPB), lty = rep(1, length(CELfiles_HPB)), col = mycols, cex = 1)
+```
 
 ### Boxplots tras la normalización
 
+```{r HPB-boxplot-normalizado}
+# boxplot de todos los genes después de normalizar
+boxplot(data.frame(exprseset_HPB),
+        main="Boxplot HPB-ALL After Normalization (log scale)",
+        col = mycols,
+        names = sampleNames(rawdata_HPB),
+        las = 2,  # vertical labels
+        cex.axis = 0.6, # size labels
+        yaxt = "n") # do not show y labels
+axis(2, cex.axis = 1) # plot y labels with higher size
+```
+
 ### Filtro del rango intercuartílico
 
+```{r HPB-K1-IQR}
+# boxplot de solo los genes normalizados con un ranog intercuartílico superior a 0.5 para que tengan variabilidad
+esetIQR_HPB <- varFilter(eset_HPB, var.func=IQR, var.cutoff=0.5, filterByQuantile=TRUE)
+
+## Comprobamos el filtro del rango intercuartílico
+dim(exprs(eset_HPB))
+dim(exprs(esetIQR_HPB))
+
+
+
+# boxplot de solo los genes normalizados con un ranog intercuartílico superior a 0.5 para que tengan variabilidad
+exprsesetIQR_HPB <- as.data.frame(exprs(esetIQR_HPB))
+
+boxplot(data.frame(exprsesetIQR_HPB),
+        main="Boxplot HPB-ALL After Normalization and IQR filter (log scale)",
+        col = mycols,
+        names = sampleNames(rawdata_HPB),
+        las = 2,  # vertical labels
+        cex.axis = 0.6, # size labels
+        yaxt = "n") # do not show y labels
+axis(2, cex.axis = 1) # plot y labels with higher size
+```
+Curiosamente el número de muestras que se eliminan tras normalizar en ambos tipos
+celulares es 27337. 
 
 ## Expresión diferencial
 
