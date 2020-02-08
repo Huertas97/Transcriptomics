@@ -48,16 +48,21 @@ if (!requireNamespace("BiocManager", quietly = TRUE))
 BiocManager::install("affy")
 BiocManager::install("limma")
 BiocManager::install("genefilter")
+BiocManager::install("hgu133plus2.db")
 ```
+
 
 ## Cargamos las librerías
 
 ```{r message = FALSE, results='hide', warning=FALSE}
 # Load required libraries
+
+suppressPackageStartupMessages({
+library("BiocStyle")
 library("affy")
 library("limma")
 library("genefilter")
-library("BiocStyle")
+library("hgu133plus2.db")})
 ```
 
 ## Eliminamos elementos del espacio
@@ -516,6 +521,34 @@ axis(2, cex.axis = 1) # plot y labels with higher size
 
 Volvemos a observar los mismo que en el gráfico de las distribuciones de intensidades: existe mayor variación entre los microarrays pertenecientes al tipo celular HPB-ALL, que en el caso del tipo celular KOPT-K1. No obstante, no hay nada preocupante. 
 
+
+```{r control-scatter-plot1}
+
+# Note that the original eset object contains the log2-transformed gene intensities
+
+intens_rawdata_control <-  as.data.frame(exprs(rawdata_control)) 
+intens_rawdata_control_KOPT <- apply(intens_rawdata_control[, c(1, 2, 3)], 1, mean)
+intens_rawdata_control_HPB <-  apply(intens_rawdata_control[, c(4, 5, 6)], 1, mean)
+
+plot(intens_rawdata_control_KOPT, intens_rawdata_control_HPB, cex = 1, 
+     pch = 19, col = "mediumaquamarine",
+     xlab = "KOPT-K1",
+     ylab = "HPB-ALL",
+     main = "Cell lines control expression level before normalization")
+
+abline(a = 0,
+       b = (max(intens_rawdata_control_HPB) / max(intens_rawdata_control_KOPT)), col = "red",
+       lwd = 2)
+```
+
+```{r MA-plot-control}
+A <- 1/2*log2(intens_rawdata_control_KOPT*intens_rawdata_control_HPB)
+M <- log2(intens_rawdata_control_KOPT/intens_rawdata_control_HPB)
+plot(A, M, cex = 0.75, pch = 19, col = "steelblue", 
+     main = "Cell lines control expression level before normalization" )
+```
+
+
 ## Normalización con RMA
 
 ```{r Normalizacion-RMA-control}
@@ -567,6 +600,102 @@ boxplot(data.frame(exprseset_control),
         yaxt = "n") # do not show y labels
 axis(2, cex.axis = 1) # plot y labels with higher size
 ```
+
+
+### Scatter plot and MA-plot
+
+(Tema 17 Pág 521 )
+The scatter plot is probably the simples tool that can be used for a comparative
+analysis of DNA expression levels. 
+In the scatter plot, each axis corresponds to an experiment (in our case, a microarray)
+and each expression level corresponding to an individual gene is represented as 
+a point. 
+
+Scatter plots are very useful to convey information about the data. 
+If a gene G has an expression level of $e_{1}$ in the first experiment, the point 
+representing G will be plotted at coordinates $(e_{1}, e_{2})$ in the scatter 
+plot. 
+In such a plot, genes with similar expression levels will appear somewhere on
+the first diagonal (the line $y = x$) of the coordinate system. A gene that
+has an expression level that is very different between the two experiments
+will appear far from the diagonal.
+
+If we apply it to our case, the scatter plot allows us to analyze in an 
+exploratory way if the levels of expression between the cell line KOPT-K1 and 
+BPH-ALL in treatment with DMSO present great differences or not. Remember that
+our null hypothesis is that both cell lines have no difference in the expression
+levels. Before making this type of plot, to carry out the comparative 
+study, it is necessary to eliminate the background and normalize the data 
+(as we have done previously). 
+
+```{r control-scatter-plot}
+
+# Note that the original eset object contains the log2-transformed gene intensities
+
+exprseset_control <- as.data.frame(exprs(eset_control)) # retrieve log2 intensities
+head(exprseset_control) # show log2 intensities
+intens_control = 2^exprseset_control # transform from log2 to normal intensity
+head(intens_control)
+
+```
+
+As we can see we have three samples for each cell line. In order to show the
+scatter plot it is neccesary to merge these three samples in one value. 
+We have previously checked that the distribution of the intensities of the 
+different replicates of each cell type ishomogeneous, so we can reduce the 
+values of the three samples to a single value corresponding to their mean.  
+I consider the mean to be adequate since the study of the distributions and 
+boxplots does not show that any of the replicates is an outlier, in which case 
+that sample would have been eliminated. 
+
+```{r}
+# mean intensity for KOPT-K1 control DMSO
+intens_control_KOPT = apply(intens_control[, c(1, 2, 3)], 1, mean)
+# mean intensity for HPB-ALL control DMSO
+intens_control_HPB = apply(intens_control[, c(4, 5, 6)], 1, mean)
+
+plot(intens_control_KOPT, intens_control_HPB, cex = 1, 
+     pch = 19, col = "mediumaquamarine",
+     xlab = "KOPT-K1",
+     ylab = "HPB-ALL",
+     main = "Cell lines control expression level after normalization")
+
+abline(a = 0,
+       b = (max(intens_control[, 4]) / max(intens_control[, 1])), col = "red",
+       lwd = 2)
+
+```
+
+
+The scatter plot allows us to observe that most genes are located on the diagonal
+and there is no pattern in the point cloud, so most of the genes studied are 
+expressed at similar levels in both cell types. However, there are some genes 
+that are separated from the diagonal, being more expressed in one of the two 
+cell types. It is interesting to continue with the differential expression 
+analysis based on statistical methods to check if these differences are 
+significant and we must study the cell lines separately.
+
+
+**Tiene sentido???**
+Another type of plot  used for array data is the ratio-versus-intensity plot
+(MA-plot). In this plot, in the y axis the intensity rario (M) is plotted against
+the average intensity (A). 
+
+We assume that most of the genes would not see any change in ther expression 
+between KOPT-K1 and HPB-ALL cell lines, so they will be plot among $y=0$
+
+```{r}
+A <- 1/2*log2(intens_control_KOPT*intens_control_HPB)
+M <- log2(intens_control_KOPT/intens_control_HPB)
+plot(A, M, cex = 0.75, pch = 19, col = "steelblue", 
+     main = "Cell lines control expression level after normalization" )
+```
+
+Tras normalizar vemos que el MA-plot ahora tiene más genes en el valor $y=0$. 
+volvemos a ver que la mayoría de genes se sitúa en torno al valor central $y=0$,
+lo que indica que se expresan igual en ambos tipos celulares. No obstante, 
+existen genes que se alejan de este valor central que deben ser estudiados. 
+
 
 ### Filtro del rango intercuartílico
 
@@ -626,8 +755,7 @@ fit_control <- lmFit(esetIQR_control, design_control)
 
 ## establecemos las comparaciones que queremos realizar
 ## Tenemos que dividir entre 2 para que tengan todos el mismo peso. Las dos últimas no tienen ningún sentido
-contrast.matrix_control <- makeContrasts(KOPT_DMSO - HPB_DMSO, # C1 - C2 # Ver si hay diferencia entre los controles
-                                 levels=design)
+contrast.matrix_control <- makeContrasts(KOPT_DMSO - HPB_DMSO, levels=design_control)
 
 ## comparamos las regresiones lineales según el patrón de contraste pedido
 fit2_control <- contrasts.fit(fit_control, contrast.matrix_control)
@@ -652,14 +780,169 @@ head(toptableIQR_control)
 Ahora quiero quedarme solo con los genes que cumplan un FDR<0.05 (adjusted P-value)
 
 ```{r}
+
+# Data frame with the values of the spot
 Control.fdr.005.table<-subset(toptableIQR_control, 
                               toptableIQR_control$adj.P.Val<=0.05)
 dim(Control.fdr.005.table)
+summary(Control.fdr.005.table) ##  Check the maximum adj.P.val is < 0.05
 ```
 
 
 Hemos pasado de 54675 genes iniciales a 27335 tras el filtro IR y, finalmente,
 a 20612 genes tras el filtro de FDR. 
+
+
+## Incorporación de los nombres de los genes
+
+Queremos incorporar anotaciones a *Control.fdr.005.table*
+
+```{r, message=FALSE, results=FALSE, warning=FALSE}
+library("hgu133plus2.db")
+```
+
+```{r}
+# Recuperamos los nombres de las sondas de los diferentes spots del microarray
+Control_probenames.fdr.005<-as.character(rownames(Control.fdr.005.table))
+head(Control_probenames.fdr.005)
+
+# Recuperamos la lista de genes asociados a las diferentes sondas del microarray
+Control_list.GeneSymbol.fdr.005<-mget(Control_probenames.fdr.005, hgu133plus2SYMBOL)
+head(Control_list.GeneSymbol.fdr.005)
+
+# ahora mostrmos solo los nombres de los genes
+Control_char.GeneSymbol.fdr.005<- as.character(Control_list.GeneSymbol.fdr.005)
+head(Control_char.GeneSymbol.fdr.005)
+
+# Añadimos al data frame la columna con los nombres de los genes
+Control_toptable.annotated<-cbind(Control.fdr.005.table, Control_char.GeneSymbol.fdr.005)
+head(Control_toptable.annotated)
+```
+
+Reordenamos las columnas colocando la nueva columna con los nombres de los genes en primer lugar
+
+```{r}
+# Change name column added
+colnames(Control_toptable.annotated)[length(colnames(Control_toptable.annotated))] <- "Gene_Name"
+
+# Get column names
+colnames(Control_toptable.annotated)
+
+# Reordering colnumns by positions. We want "Gene_names" as the second column
+
+Control_toptable.annotated<- Control_toptable.annotated[, c("Gene_Name", "logFC", "AveExpr", "t", "P.Value", "adj.P.Val", "B")]
+head(Control_toptable.annotated)
+  
+```
+
+
+Links utilizados:
+
+* https://bioconductor.org/packages/release/bioc/vignettes/AnnotationDbi/inst/doc/IntroToAnnotationPackages.pdf
+
+* https://bioconductor.org/packages/devel/bioc/manuals/AnnotationDbi/man/AnnotationDbi.pdf
+
+```{r}
+library("hgu133plus2.db")
+
+# Recuperamos los nombres de las sondas de los diferentes spots del microarray
+Control_probenames.fdr.005<-as.character(rownames(Control.fdr.005.table))
+head(Control_probenames.fdr.005)
+
+# Recuperamos los nombres de los genes y las rutas asociadas a las diferentes sondas del microarray
+Control_list.PATH.fdr.005<-mget(Control_probenames.fdr.005, hgu133plus2PATH)
+Control_list.GeneSymbol.fdr.005<-mget(Control_probenames.fdr.005, hgu133plus2SYMBOL)
+
+# ahora mostrmos solo los nombres de los genes
+Control_char.PATH.fdr.005 <- as.character(Control_list.PATH.fdr.005)
+Control_char.GeneSymbol.fdr.005 <- as.character(Control_list.GeneSymbol.fdr.005)
+
+# Añadimos al data frame la columna con los nombres de los genes
+Control_toptable.annotated<-cbind(Control.fdr.005.table, Control_char.GeneSymbol.fdr.005, Control_char.PATH.fdr.005 )
+head(Control_toptable.annotated)
+
+```
+
+He comprobado que puedo  incorporar más información si sigo un método alternativo
+explicado en la viñeta de [*AnnotationDb*] (https://bioconductor.org/packages/devel/bioc/manuals/AnnotationDbi/man/AnnotationDbi.pdf) 
+
+```{r, warning = FALSE}
+
+# Using the aternatively method
+# if you wanted to extract only one column of data you could instead use themapIds method
+Control_list.GeneSymbol_2 <- as.list(mapIds(hgu133plus2.db, keys=Control_probenames.fdr.005, column="SYMBOL", keytype = "PROBEID"))
+
+# see the annotation obtained from this spot in both methods
+spot <- "216191_s_at" 
+Control_list.GeneSymbol.fdr.005[spot] # return NA
+Control_list.GeneSymbol_2[spot] # return YME1L1
+
+# The second method retrieve more information
+unlist(head(Control_list.GeneSymbol.fdr.005))
+unlist(head(Control_list.GeneSymbol_2))
+
+# Let's see the amount of NA in each method
+sum(is.na(Control_list.GeneSymbol.fdr.005)) # 3647
+sum(is.na(Control_list.GeneSymbol_2)) # 2633
+
+```
+
+Obtenemos las anotaciones y preparamos los data frame para la unión. 
+
+```{r, warning=FALSE}
+
+
+# hgu133plus2()
+
+# Here we can see the different keytypes available
+# keytypes(hgu133plus2.db)
+
+# Here we check which keytype should be use
+# head(keys(hgu133plus2.db, keytype = "PROBEID"))
+
+# if we have some keys, we can use selectto extract them
+# Get the official gene symbol (HGNC) --> SYMBOL
+# Get the associated gene description --> GENENAME
+# Get the Gene Ontology terms --> GO
+# Get the associated KEGG pathways --> PATH
+Control_annotations <- as.data.frame(select(hgu133plus2.db, keys=Control_probenames.fdr.005, 
+            columns=c("SYMBOL", "GENENAME", "GO",  "PATH"), 
+            keytype="PROBEID"))
+
+# Take the original table with values Create a new key column with spots id
+Control.fdr.005.table$PROBEID <- rownames(Control.fdr.005.table) 
+
+# Explore their content
+head(Control_annotations)
+head(Control.fdr.005.table)
+```
+
+Ahora unimos el data frame original con los niveles de expresión (*Control.fdr.005.table*)
+con el data frame con las anotaciones (*Control_annotations*)
+
+```{r}
+# An outer join. Returns all rows from both data frame, join records from 
+# the left which have matching keys (PROBEID) in the right table.
+Control_merged_fdr_annotations <- merge(Control.fdr.005.table, Control_annotations,
+                                        by = "PROBEID", all = TRUE)
+
+# Check we have not lose any spot
+length(unique(Control_merged_fdr_annotations$PROBEID)) == dim(Control.fdr.005.table)[1]
+```
+
+```{r save-as-xlsx}
+if(!require("xlsx")){
+    install.packages("xlsx")}
+
+library("xlsx")
+
+# write.xlsx(Control_merged_fdr_annotations, file = "Resultado.xlsx")
+```
+
+
+
+
+
 
 
 # Lineas celulares estudiadas por separado
