@@ -1,0 +1,274 @@
+---
+title: "Expression Analysis (NOTCH1)"
+author:
+- name: Alejandro Martín Muñoz
+  affiliation: Universidad Autónoma de Madrid
+  email: alejandro.martinmunnoz@estudiante.uam.es
+package: "Expression Analysis with Bioconductor"
+output:
+  BiocStyle::pdf_document
+abstract: |
+  Description of your vignette
+vignette: |
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+Para comenzar, se van a importar los paquetes necesarios para poder llevar a
+cabo el análisis de forma que, en caso de no estar insatalados, se instalarán.
+En la mayoría de los casos, se solicita actualizar paquetes que dependan de los
+mismos, algo conveniente pero no obligatorio.
+
+```{r Libraries, message=FALSE, warning=FALSE, results='hide'}
+
+# Libraries' installation and importation
+
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+
+packages <- matrix(data = c("affy", "limma", "genefilter", "hgu133plus2.db"))
+apply(packages, 1, function(p) {
+                                if(!require(p)) {BiocManager::install(p)}
+                                library(p, character.only=TRUE)
+                               }
+      )
+
+```
+
+En primer lugar, se va a hacer un análisis de expresión para la línea celular
+KOPT-K1, debiendo así crear una matriz de intensidades para los datos
+correspondientes a la misma, e independiente de los correspondientes a la otra
+línea celular.
+
+```{r KOPT_K1 Data, message=FALSE, warning = FALSE}
+
+# 2. Setting of the working directory
+
+setwd("C:/Users/jandr/Google Drive/Máster/1_Transcriptómica_Regulación_y_Epigenómica/3_Entregas/Datos")
+
+# 3. Design creation and data loading
+
+targets_1 <- cbind(FileName = c("GSM455115.CEL", "GSM455116.CEL",
+                                "GSM455117.CEL", "GSM455121.CEL",
+                                "GSM455122.CEL", "GSM455123.CEL"),
+                   Classes = c("KOPT_K1_DMSO", "KOPT_K1_DMSO", "KOPT_K1_DMSO",
+                             "KOPT_K1_SAHM1", "KOPT_K1_SAHM1", "KOPT_K1_SAHM1")
+                  )
+              
+rownames(targets_1) <- c("GSM455115.CEL", "GSM455116.CEL", "GSM455117.CEL",
+                         "GSM455121.CEL", "GSM455122.CEL", "GSM455123.CEL")
+                    
+data_1 <- ReadAffy(filenames=targets_1[,"FileName"]) # Import intensities from
+                                                     # Affymetrix arrays (.CEL)
+                                                     # AffyBatch object
+
+# 4. Conversion of the AffyBatch object to an exprSet object, including the
+#    correction and normalization of the recorded intensities.
+
+exprSet1 <- expresso(data_1,
+                     bg.correct = TRUE,
+                     bgcorrect.method="rma",
+                     normalize = TRUE,
+                     normalize.method="quantiles",
+                     pmcorrect.method="pmonly",
+                     summary.method="medianpolish",
+                     verbose = TRUE) # Normalization with RMA, generating an
+                                     # exprSet object with intensities in log
+                                     # scale.
+
+# 5. Checking that the process has correctly been done
+
+boxplot(data_1, main="Boxplot Before Normalization",
+        col = c(rep("lightseagreen", 3), rep("lightsalmon", 3)))
+
+boxplot(data.frame(as.data.frame(exprs(exprSet1))),
+        main="Boxplot After Normalization (log scale)",
+        col = c(rep("lightseagreen", 3), rep("lightsalmon", 3)))
+
+hist(data_1, lty = rep(1, length(targets_1)),
+     main = "Distribution of intensity's values Before Normalization")
+
+
+
+# 6. Data filtering using IQR
+
+exprSet1IQR <- varFilter(exprSet1, var.func=IQR, var.cutoff=0.5,
+                         filterByQuantile=TRUE)
+
+```
+
+Una vez realizadas las correcciones y normalización pertinentes, y comprobado
+que el proceso ha sido realizado correctamente (comparación de los boxplots),
+se va a proceder a realizar el análisis de expresión en sí.
+
+```{r, message = FALSE}
+
+# 7. Diferential expression analysis
+
+# 7.1 Creation of the different designs
+
+design_1 <- cbind("KOPT_K1_DMSO" = c(1,1,1,0,0,0),
+                  "KOPT_K1_SAHM1" = c(0,0,0,1,1,1))
+
+rownames(design_1) <- rownames(targets_1)
+
+# 7.2 Creation of the different contrasts matrices
+
+cont.matrix_1 <- makeContrasts(KOPT_K1_SAHM1vsKOPT_K1_DMSO = 
+                                 KOPT_K1_SAHM1-KOPT_K1_DMSO,
+                               levels = design_1)
+
+# 7.3 Obtaining differentially expressed genes (DEGs) using linear model and
+#     eBayes
+
+fit_1 <- lmFit(exprSet1IQR, design_1)
+fit_1_2 <- contrasts.fit(fit_1, cont.matrix_1)
+fit_1_2 <- eBayes(fit_1_2)
+
+#7.4 Tables with DEGs results
+
+toptable_1 <- topTable(fit_1_2, number = dim(exprs(exprSet1IQR))[1],
+                       adjust.method="BH", sort.by="p")
+toptable_1 <- toptable_1[which(toptable_1$adj.P.Val < 0.05) ,]
+
+```
+
+``` {r, message = FALSE}
+
+# 8. DEGs' annotation with the gene symbol
+
+names_1 <- as.character(mget(as.character(rownames(toptable_1)),
+                             hgu133plus2SYMBOL))
+toptable_1 <- cbind(toptable_1, GeneSYMBOL = names_1)
+toptable_1 <- toptable_1[which(toptable_1$GeneSYMBOL != "NA") ,]
+# save(toptable_1, file="KOPT_K1_Results.RData")
+
+```
+
+En segundo lugar, se va a repetir el proceso, pero para la segunda línea
+celular (HPB-ALL).
+
+```{r, message=FALSE}
+
+# 2. Setting of the working directory
+
+setwd("C:/Users/jandr/Google Drive/Máster/1_Transcriptómica_Regulación_y_Epigenómica/3_Entregas/Datos")
+
+# 3. Design creation and data loading
+
+targets_2 <- cbind(FileName = c("GSM455118.CEL", "GSM455119.CEL",
+                                "GSM455120.CEL", "GSM455124.CEL",
+                                "GSM455125.CEL", "GSM455126.CEL"),
+                   Classes = c("HPB_ALL_DMSO", "HPB_ALL_DMSO", "HPB_ALL_DMSO",
+                               "HPB_ALL_SAHM1", "HPB_ALL_SAHM1",
+                               "HPB_ALL_SAHM1"))
+              
+rownames(targets_2) <- c("GSM455118.CEL", "GSM455119.CEL", "GSM455120.CEL",
+                         "GSM455124.CEL", "GSM455125.CEL", "GSM455126.CEL")
+                    
+data_2 <- ReadAffy(filenames=targets_2[,"FileName"]) # Import intensities from
+                                                     # Affymetrix arrays (.CEL)
+                                                     # AffyBatch object
+
+# 4. Conversion of the AffyBatch object to an exprSet object, including the
+#    correction and normalization of the recorded intensities.
+
+exprSet2 <- expresso(data_2,
+                     bg.correct = TRUE,
+                     bgcorrect.method="rma",
+                     normalize = TRUE,
+                     normalize.method="quantiles",
+                     pmcorrect.method="pmonly",
+                     summary.method="medianpolish",
+                     verbose = TRUE) # Normalization with RMA, generating an
+                                     # exprSet object with intensities in log
+                                     # scale.
+
+# 5. Checking that the process has correctly been done
+
+boxplot(data_2, main="Boxplot Before Normalization",
+        col = c(rep("lightseagreen", 3), rep("lightsalmon", 3)))
+
+boxplot(data.frame(as.data.frame(exprs(exprSet2))),
+        main="Boxplot After Normalization (log scale)",
+        col = c(rep("lightseagreen", 3), rep("lightsalmon", 3)))
+
+# 6. Data filtering using IQR
+
+exprSet2IQR <- varFilter(exprSet2, var.func=IQR, var.cutoff=0.5,
+                         filterByQuantile=TRUE)
+
+```
+
+```{r, message = FALSE}
+
+# 7. Diferential expression analysis
+
+# 7.1 Creation of the different designs
+
+design_2 <- cbind("HPB_ALL_DMSO" = c(1,1,1,0,0,0),
+                  "HPB_ALL_SAHM1" = c(0,0,0,1,1,1))
+
+rownames(design_2) <- rownames(targets_2)
+
+# 7.2 Creation of the different contrasts matrices
+
+cont.matrix_2 <- makeContrasts(HPB_ALL_SAHM1vsHPB_ALL_DMSO =
+                                 HPB_ALL_SAHM1-HPB_ALL_DMSO,
+                               levels = design_2)
+
+# 7.3 Obtaining differentially expressed genes (DEGs) using linear model and
+#     eBayes
+
+fit_2 <- lmFit(exprSet2IQR, design_2)
+fit_2_2 <- contrasts.fit(fit_2, cont.matrix_2)
+fit_2_2 <- eBayes(fit_2_2)
+
+# 7.4 Tables with DEGs results
+
+toptable_2 <- topTable(fit_2_2, number = dim(exprs(exprSet2IQR))[1],
+                       adjust.method="BH", sort.by="p")
+toptable_2 <- toptable_2[which(toptable_2$adj.P.Val < 0.05) ,]
+
+```
+
+``` {r, message = FALSE}
+
+# 8. DEGs' annotation with the gene symbol
+
+names_2 <- as.character(mget(as.character(rownames(toptable_2)),
+                             hgu133plus2SYMBOL))
+toptable_2 <- cbind(toptable_2, GeneSYMBOL = names_2)
+toptable_2 <- toptable_2[which(toptable_2$GeneSYMBOL != "NA") ,]
+# save(toptable_2, file="HPB_ALL_Results.RData")
+
+```
+
+Finalmente, y de cara a la realización de un Gene Set Enrichment Analysis a
+través del software GSEA, se va a proceder a guardar las matrices de datos de
+intensidad creadas.
+
+``` {r, message = FALSE}
+
+# 9. Preparation of the expression data files for the GSEA analysis
+
+KOPT_K1_GSEA <- cbind(NAME=rownames(exprs(exprSet1)),
+                      DESCRIPTION=rep("na", length(rownames(exprs(exprSet1)))),
+                      exprs(exprSet1))
+write.table(KOPT_K1_GSEA, "./Datos/KOPT-K1_Data.txt", sep = "\t",
+            row.names = FALSE, quote = FALSE)
+
+HPB_ALL_GSEA <- cbind(NAME=rownames(exprs(exprSet2)),
+                      DESCRIPTION=rep("na", length(rownames(exprs(exprSet2)))),
+                      exprs(exprSet2))
+write.table(HPB_ALL_GSEA, "./Datos/HPB_ALL_Data.txt", sep = "\t",
+            row.names = FALSE, quote = FALSE)
+
+```
+
+# Session info {.unnumbered}
+
+```{r sessionInfo, echo=FALSE}
+sessionInfo()
+```

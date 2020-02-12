@@ -1,0 +1,53 @@
+NAME	PROBE	DESCRIPTION<br>(from dataset)	GENE SYMBOL	GENE_TITLE	RANK IN GENE LIST	RANK METRIC SCORE	RUNNING ES	CORE ENRICHMENT	
+row_0	LZTFL1	leucine zipper transcription factor like 1 [Source:HGNC Symbol;Acc:HGNC:6741]	null	null	20	1.4672051668167114	0.018356683	Yes	
+row_1	HES4	hes family bHLH transcription factor 4 [Source:HGNC Symbol;Acc:HGNC:24149]	null	null	29	1.3016277551651	0.037237816	Yes	
+row_2	HK2	hexokinase 2 [Source:HGNC Symbol;Acc:HGNC:4923]	null	null	61	1.0426565408706665	0.05511375	Yes	
+row_3	HES1	hes family bHLH transcription factor 1 [Source:HGNC Symbol;Acc:HGNC:5192]	null	null	66	1.0155256986618042	0.0741697	Yes	
+row_4	PPRC1	PPARG related coactivator 1 [Source:HGNC Symbol;Acc:HGNC:30025]	null	null	85	0.9744189381599426	0.092613794	Yes	
+row_5	DTX1	deltex E3 ubiquitin ligase 1 [Source:HGNC Symbol;Acc:HGNC:3060]	null	null	111	0.8998149037361145	0.11075196	Yes	
+row_6	NOTCH3	notch receptor 3 [Source:HGNC Symbol;Acc:HGNC:7883]	null	null	352	0.651751697063446	0.11949367	Yes	
+row_7	PUS7	pseudouridine synthase 7 [Source:HGNC Symbol;Acc:HGNC:26033]	null	null	662	0.5255900025367737	0.12521979	Yes	
+row_8	SLC44A1	solute carrier family 44 member 1 [Source:HGNC Symbol;Acc:HGNC:18798]	null	null	832	0.48213082551956177	0.13706452	Yes	
+row_9	IFRD2	interferon related developmental regulator 2 [Source:HGNC Symbol;Acc:HGNC:5457]	null	null	1020	0.44640427827835083	0.14812256	Yes	
+row_10	HEATR1	HEAT repeat containing 1 [Source:HGNC Symbol;Acc:HGNC:25517]	null	null	1028	0.4449863135814667	0.16704741	Yes	
+row_11	MYC	MYC proto-oncogene, bHLH transcription factor [Source:HGNC Symbol;Acc:HGNC:7553]	null	null	1157	0.42305788397789	0.18068402	Yes	
+row_12	DHX33	DEAH-box helicase 33 [Source:HGNC Symbol;Acc:HGNC:16718]	null	null	1203	0.4171462059020996	0.19794808	Yes	
+row_13	NOL6	nucleolar protein 6 [Source:HGNC Symbol;Acc:HGNC:19910]	null	null	1348	0.3989146947860718	0.21088544	Yes	
+row_14	TRMT1	tRNA methyltransferase 1 [Source:HGNC Symbol;Acc:HGNC:25980]	null	null	1380	0.3944509029388428	0.22876136	Yes	
+row_15	POLR3E	RNA polymerase III subunit E [Source:HGNC Symbol;Acc:HGNC:30347]	null	null	1761	0.34889304637908936	0.23138447	Yes	
+row_16	PPAN	peter pan homolog [Source:HGNC Symbol;Acc:HGNC:9227]	null	null	1800	0.34512072801589966	0.24895447	Yes	
+row_17	SLC19A1	solute carrier family 19 member 1 [Source:HGNC Symbol;Acc:HGNC:10937]	null	null	2123	0.31727364659309387	0.25411242	Yes	
+row_18	BYSL	bystin like [Source:HGNC Symbol;Acc:HGNC:1157]	null	null	2175	0.3127715587615967	0.2711143	Yes	
+row_19	P2RX5	purinergic receptor P2X 5 [Source:HGNC Symbol;Acc:HGNC:8536]	null	null	2214	0.3098042607307434	0.28868428	Yes	
+row_20	POLR3H	RNA polymerase III subunit H [Source:HGNC Symbol;Acc:HGNC:30349]	null	null	2532	0.2889740765094757	0.29406077	Yes	
+row_21	PUS1	pseudouridine synthase 1 [Source:HGNC Symbol;Acc:HGNC:15508]	null	null	2674	0.27891606092453003	0.3071292	Yes	
+row_22	POLR1C	RNA polymerase I and III subunit C [Source:HGNC Symbol;Acc:HGNC:20194]	null	null	2890	0.26707151532173157	0.31696355	Yes	
+row_23	ETF1	eukaryotic translation termination factor 1 [Source:HGNC Symbol;Acc:HGNC:3477]	null	null	2942	0.26389721035957336	0.3339654	Yes	
+row_24	AKAP1	A-kinase anchoring protein 1 [Source:HGNC Symbol;Acc:HGNC:367]	null	null	2950	0.2634850740432739	0.35289022	Yes	
+row_25	GTPBP4	GTP binding protein 4 [Source:HGNC Symbol;Acc:HGNC:21535]	null	null	3222	0.2471877932548523	0.36027712	Yes	
+row_26	NLN	neurolysin [Source:HGNC Symbol;Acc:HGNC:16058]	null	null	3453	0.23488125205039978	0.36945587	Yes	
+row_27	NAT10	N-acetyltransferase 10 [Source:HGNC Symbol;Acc:HGNC:29830]	null	null	3639	0.2254362553358078	0.38060132	Yes	
+row_28	GIMAP6	GTPase, IMAP family member 6 [Source:HGNC Symbol;Acc:HGNC:21918]	null	null	4101	0.20477120578289032	0.3796844	Yes	
+row_29	SLC29A1	solute carrier family 29 member 1 (Augustine blood group) [Source:HGNC Symbol;Acc:HGNC:11003]	null	null	4442	0.18995210528373718	0.38405567	Yes	
+row_30	NOLC1	nucleolar and coiled-body phosphoprotein 1 [Source:HGNC Symbol;Acc:HGNC:15608]	null	null	4500	0.18718960881233215	0.40079528	Yes	
+row_31	CCDC86	coiled-coil domain containing 86 [Source:HGNC Symbol;Acc:HGNC:28359]	null	null	4547	0.18483948707580566	0.41801566	Yes	
+row_32	LYAR	Ly1 antibody reactive [Source:HGNC Symbol;Acc:HGNC:26021]	null	null	4674	0.18050438165664673	0.43173966	Yes	
+row_33	PDSS1	decaprenyl diphosphate synthase subunit 1 [Source:HGNC Symbol;Acc:HGNC:17759]	null	null	5076	0.164862722158432	0.43344498	Yes	
+row_34	GNL3	G protein nucleolar 3 [Source:HGNC Symbol;Acc:HGNC:29931]	null	null	5112	0.16333532333374023	0.4511461	Yes	
+row_35	PPP4R2	protein phosphatase 4 regulatory subunit 2 [Source:HGNC Symbol;Acc:HGNC:18296]	null	null	5785	0.1398659348487854	0.44100752	Yes	
+row_36	MRPL4	mitochondrial ribosomal protein L4 [Source:HGNC Symbol;Acc:HGNC:14276]	null	null	5857	0.13715232908725739	0.4571353	Yes	
+row_37	MATR3	matrin 3 [Source:HGNC Symbol;Acc:HGNC:6912]	null	null	6292	0.12275488674640656	0.45739836	Yes	
+row_38	SHQ1	SHQ1, H/ACA ribonucleoprotein assembly factor [Source:HGNC Symbol;Acc:HGNC:25543]	null	null	6416	0.1186864897608757	0.47125348	Yes	
+row_39	EVL	Enah/Vasp-like [Source:HGNC Symbol;Acc:HGNC:20234]	null	null	6467	0.11714890599250793	0.48829904	Yes	
+row_40	DKC1	dyskerin pseudouridine synthase 1 [Source:HGNC Symbol;Acc:HGNC:2890]	null	null	7175	0.09515305608510971	0.4766308	Yes	
+row_41	DPH2	diphthamide biosynthesis 2 [Source:HGNC Symbol;Acc:HGNC:3004]	null	null	7276	0.0918869599699974	0.49149114	Yes	
+row_42	PSMB5	proteasome subunit beta 5 [Source:HGNC Symbol;Acc:HGNC:9542]	null	null	7550	0.08365698158740997	0.49879062	Yes	
+row_43	PPIF	peptidylprolyl isomerase F [Source:HGNC Symbol;Acc:HGNC:9259]	null	null	8124	0.06670456379652023	0.49297878	Yes	
+row_44	WDR12	WD repeat domain 12 [Source:HGNC Symbol;Acc:HGNC:14098]	null	null	8419	0.058730196207761765	0.49936044	Yes	
+row_45	DNAJC11	DnaJ heat shock protein family (Hsp40) member C11 [Source:HGNC Symbol;Acc:HGNC:25570]	null	null	9141	0.037998978048563004	0.48708037	Yes	
+row_46	FKBP4	FKBP prolyl isomerase 4 [Source:HGNC Symbol;Acc:HGNC:3720]	null	null	9316	0.03340109437704086	0.49870658	Yes	
+row_47	APRT	adenine phosphoribosyltransferase [Source:HGNC Symbol;Acc:HGNC:626]	null	null	9382	0.03142920508980751	0.51509655	Yes	
+row_48	MRPL24	mitochondrial ribosomal protein L24 [Source:HGNC Symbol;Acc:HGNC:14037]	null	null	9808	0.020265331491827965	0.515753	Yes	
+row_49	POLR3K	RNA polymerase III subunit K [Source:HGNC Symbol;Acc:HGNC:14121]	null	null	11977	-0.038402654230594635	0.44023263	No	
+row_50	WDR74	WD repeat domain 74 [Source:HGNC Symbol;Acc:HGNC:25529]	null	null	12064	-0.0408882200717926	0.45570484	No	
+row_51	GIMAP7	GTPase, IMAP family member 7 [Source:HGNC Symbol;Acc:HGNC:22404]	null	null	14333	-0.10919932276010513	0.37581405	No	

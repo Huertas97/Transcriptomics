@@ -1,0 +1,295 @@
+# 1. Libraries' importing
+library("affy")
+library("limma")
+library("genefilter")
+library("hgu133plus2.db")
+setwd("C:/Users/jandr/Google Drive/Máster/1_Transcriptómica_Regulación_y_Epigenómica/3_Entregas/Datos")
+targets_1 <- cbind(FileName = c("GSM455115.CEL", "GSM455116.CEL",
+"GSM455117.CEL", "GSM455121.CEL",
+"GSM455122.CEL", "GSM455123.CEL"),
+Classes = c("KOPT_K1_DMSO", "KOPT_K1_DMSO", "KOPT_K1_DMSO",
+"KOPT_K1_SAHM1", "KOPT_K1_SAHM1", "KOPT_K1_SAHM1")
+)
+rownames(targets_1) <- c("GSM455115.CEL", "GSM455116.CEL", "GSM455117.CEL",
+"GSM455121.CEL", "GSM455122.CEL", "GSM455123.CEL")
+data_1 <- ReadAffy(filenames=targets_1[,"FileName"]) # Import intensities from
+setwd("C:/Users/jandr/Google Drive/Máster/1_Transcriptómica_Regulación_y_Epigenómica/3_Entregas/Datos")
+targets_1 <- cbind(FileName = c("GSM455115.CEL", "GSM455116.CEL",
+"GSM455117.CEL", "GSM455121.CEL",
+"GSM455122.CEL", "GSM455123.CEL"),
+Classes = c("KOPT_K1_DMSO", "KOPT_K1_DMSO", "KOPT_K1_DMSO",
+"KOPT_K1_SAHM1", "KOPT_K1_SAHM1", "KOPT_K1_SAHM1")
+)
+rownames(targets_1) <- c("GSM455115.CEL", "GSM455116.CEL", "GSM455117.CEL",
+"GSM455121.CEL", "GSM455122.CEL", "GSM455123.CEL")
+data_1 <- ReadAffy(filenames=targets_1[,"FileName"]) # Import intensities from
+targets_1 <- cbind(FileName = c("GSM455115.CEL", "GSM455116.CEL",
+"GSM455117.CEL", "GSM455121.CEL",
+"GSM455122.CEL", "GSM455123.CEL"),
+Classes = c("KOPT_K1_DMSO", "KOPT_K1_DMSO", "KOPT_K1_DMSO",
+"KOPT_K1_SAHM1", "KOPT_K1_SAHM1", "KOPT_K1_SAHM1")
+)
+rownames(targets_1) <- c("GSM455115.CEL", "GSM455116.CEL", "GSM455117.CEL",
+"GSM455121.CEL", "GSM455122.CEL", "GSM455123.CEL")
+data_1 <- ReadAffy(filenames=targets_1[,"FileName"]) # Import intensities from
+setwd("C:/Users/jandr/Google Drive/Máster/1_Transcriptómica_Regulación_y_Epigenómica/3_Entregas/Datos")
+setwd("C:/Users/jandr/Google Drive/Máster/1_Transcriptómica_Regulación_y_Epigenómica/3_Entregas/Datos")
+targets_1 <- cbind(FileName = c("GSM455115.CEL", "GSM455116.CEL",
+"GSM455117.CEL", "GSM455121.CEL",
+"GSM455122.CEL", "GSM455123.CEL"),
+Classes = c("KOPT_K1_DMSO", "KOPT_K1_DMSO", "KOPT_K1_DMSO",
+"KOPT_K1_SAHM1", "KOPT_K1_SAHM1", "KOPT_K1_SAHM1")
+)
+rownames(targets_1) <- c("GSM455115.CEL", "GSM455116.CEL", "GSM455117.CEL",
+"GSM455121.CEL", "GSM455122.CEL", "GSM455123.CEL")
+data_1 <- ReadAffy(filenames=targets_1[,"FileName"]) # Import intensities from
+setwd("C:/Users/jandr/Google Drive/Máster/1_Transcriptómica_Regulación_y_Epigenómica/3_Entregas/Datos")
+data_1 <- ReadAffy(filenames=targets_1[,"FileName"]) # Import intensities from
+# 2. Setting of the working directory
+setwd("C:/Users/jandr/Google Drive/Máster/1_Transcriptómica_Regulación_y_Epigenómica/3_Entregas/Datos")
+# 3. Design creation and data loading
+targets_1 <- cbind(FileName = c("GSM455115.CEL", "GSM455116.CEL",
+"GSM455117.CEL", "GSM455121.CEL",
+"GSM455122.CEL", "GSM455123.CEL"),
+Classes = c("KOPT_K1_DMSO", "KOPT_K1_DMSO", "KOPT_K1_DMSO",
+"KOPT_K1_SAHM1", "KOPT_K1_SAHM1", "KOPT_K1_SAHM1")
+)
+rownames(targets_1) <- c("GSM455115.CEL", "GSM455116.CEL", "GSM455117.CEL",
+"GSM455121.CEL", "GSM455122.CEL", "GSM455123.CEL")
+data_1 <- ReadAffy(filenames=targets_1[,"FileName"]) # Import intensities from
+# Affymetrix arrays (.CEL)
+# AffyBatch object
+# 4. Conversion of the AffyBatch object to an exprSet object, including the
+#    correction and normalization of the recorded intensities.
+exprSet1 <- expresso(data_1,
+bg.correct = TRUE,
+bgcorrect.method="rma",
+normalize = TRUE,
+normalize.method="quantiles",
+pmcorrect.method="pmonly",
+summary.method="medianpolish",
+verbose = TRUE) # Normalization with RMA, generating an
+# exprSet object with intensities in log
+# scale.
+# 5. Checking that the process has correctly been done
+boxplot(data_1, main="Boxplot Before Normalization",
+col = c(rep("lightseagreen", 3), rep("lightsalmon", 3)))
+boxplot(data.frame(as.data.frame(exprs(exprSet1))),
+main="Boxplot After Normalization (log scale)",
+col = c(rep("lightseagreen", 3), rep("lightsalmon", 3)))
+# 6. Data filtering using IQR
+exprSet1IQR <- varFilter(exprSet1, var.func=IQR, var.cutoff=0.5,
+filterByQuantile=TRUE)
+# 7. Diferential expression analysis
+# 7.1 Creation of the different designs
+design_1 <- cbind("KOPT_K1_DMSO" = c(1,1,1,0,0,0),
+"KOPT_K1_SAHM1" = c(0,0,0,1,1,1))
+rownames(design_1) <- rownames(targets_1)
+# 7.2 Creation of the different contrasts matrices
+cont.matrix_1 <- makeContrasts(KOPT_K1_SAHM1vsKOPT_K1_DMSO =
+KOPT_K1_SAHM1-KOPT_K1_DMSO,
+levels = design_1)
+# 7.3 Obtaining differentially expressed genes (DEGs) using linear model and
+#     eBayes
+fit_1 <- lmFit(exprSet1IQR, design_1)
+fit_1_2 <- contrasts.fit(fit_1, cont.matrix_1)
+fit_1_2 <- eBayes(fit_1_2)
+#7.4 Tables with DEGs results
+toptable_1 <- topTable(fit_1_2, number = dim(exprs(exprSet1IQR))[1],
+adjust.method="BH", sort.by="p")
+toptable_1 <- toptable_1[which(toptable_1$adj.P.Val < 0.05) ,]
+# 8. DEGs' annotation with the gene symbol
+names_1 <- as.character(mget(as.character(rownames(toptable_1)),
+hgu133plus2SYMBOL))
+toptable_1 <- cbind(toptable_1, GeneSYMBOL = names_1)
+toptable_1 <- toptable_1[which(toptable_1$GeneSYMBOL != "NA") ,]
+# save(toptable_1, file="KOPT_K1_Results.RData")
+# 2. Setting of the working directory
+setwd("C:/Users/jandr/Google Drive/Máster/1_Transcriptómica_Regulación_y_Epigenómica/3_Entregas/Datos")
+# 3. Design creation and data loading
+targets_2 <- cbind(FileName = c("GSM455118.CEL", "GSM455119.CEL",
+"GSM455120.CEL", "GSM455124.CEL",
+"GSM455125.CEL", "GSM455126.CEL"),
+Classes = c("HPB_ALL_DMSO", "HPB_ALL_DMSO", "HPB_ALL_DMSO",
+"HPB_ALL_SAHM1", "HPB_ALL_SAHM1",
+"HPB_ALL_SAHM1"))
+rownames(targets_2) <- c("GSM455118.CEL", "GSM455119.CEL", "GSM455120.CEL",
+"GSM455124.CEL", "GSM455125.CEL", "GSM455126.CEL")
+data_2 <- ReadAffy(filenames=targets_2[,"FileName"]) # Import intensities from
+# Affymetrix arrays (.CEL)
+# AffyBatch object
+# 4. Conversion of the AffyBatch object to an exprSet object, including the
+#    correction and normalization of the recorded intensities.
+exprSet2 <- expresso(data_2,
+bg.correct = TRUE,
+bgcorrect.method="rma",
+normalize = TRUE,
+normalize.method="quantiles",
+pmcorrect.method="pmonly",
+summary.method="medianpolish",
+verbose = TRUE) # Normalization with RMA, generating an
+# exprSet object with intensities in log
+# scale.
+# 5. Checking that the process has correctly been done
+boxplot(data_2, main="Boxplot Before Normalization",
+col = c(rep("lightseagreen", 3), rep("lightsalmon", 3)))
+boxplot(data.frame(as.data.frame(exprs(exprSet2))),
+main="Boxplot After Normalization (log scale)",
+col = c(rep("lightseagreen", 3), rep("lightsalmon", 3)))
+# 6. Data filtering using IQR
+exprSet2IQR <- varFilter(exprSet2, var.func=IQR, var.cutoff=0.5,
+filterByQuantile=TRUE)
+# 7. Diferential expression analysis
+# 7.1 Creation of the different designs
+design_2 <- cbind("HPB_ALL_DMSO" = c(1,1,1,0,0,0),
+"HPB_ALL_SAHM1" = c(0,0,0,1,1,1))
+rownames(design_2) <- rownames(targets_2)
+# 7.2 Creation of the different contrasts matrices
+cont.matrix_2 <- makeContrasts(HPB_ALL_SAHM1vsHPB_ALL_DMSO =
+HPB_ALL_SAHM1-HPB_ALL_DMSO,
+levels = design_2)
+# 7.3 Obtaining differentially expressed genes (DEGs) using linear model and
+#     eBayes
+fit_2 <- lmFit(exprSet2IQR, design_2)
+fit_2_2 <- contrasts.fit(fit_2, cont.matrix_2)
+fit_2_2 <- eBayes(fit_2_2)
+# 7.4 Tables with DEGs results
+toptable_2 <- topTable(fit_2_2, number = dim(exprs(exprSet2IQR))[1],
+adjust.method="BH", sort.by="p")
+toptable_2 <- toptable_2[which(toptable_2$adj.P.Val < 0.05) ,]
+# 8. DEGs' annotation with the gene symbol
+names_2 <- as.character(mget(as.character(rownames(toptable_2)),
+hgu133plus2SYMBOL))
+toptable_2 <- cbind(toptable_2, GeneSYMBOL = names_2)
+toptable_2 <- toptable_2[which(toptable_2$GeneSYMBOL != "NA") ,]
+# save(toptable_2, file="HPB_ALL_Results.RData")
+# 9. Preparation of the expression data files for the GSEA analysis
+KOPT_K1_GSEA <- cbind(NAME=rownames(exprs(exprSet1)),
+DESCRIPTION=rep("na", length(rownames(exprs(exprSet1)))),
+exprs(exprSet1))
+write.table(KOPT_K1_GSEA, "./Datos/KOPT-K1_Data.txt", sep = "\t",
+row.names = FALSE, quote = FALSE)
+HPB_ALL_GSEA <- cbind(NAME=rownames(exprs(exprSet2)),
+DESCRIPTION=rep("na", length(rownames(exprs(exprSet2)))),
+exprs(exprSet2))
+write.table(HPB_ALL_GSEA, "./Datos/HPB_ALL_Data.txt", sep = "\t",
+row.names = FALSE, quote = FALSE)
+# 10. Preparation of the microarray chip annotation files for the GSEA analysis
+hist(data_1)
+hist(exprSet1)
+hist(exprs(exprSet1))
+hist(data_1)
+help("hist")
+hist(exprs(exprSet1), density = TRUE)
+hist(rawdata, lty = rep(1, length(targets_1)),
+main = "Distribution of intensity's values Before Normalization")
+hist(data_1, lty = rep(1, length(targets_1)),
+main = "Distribution of intensity's values Before Normalization")
+dens <- apply(data.frame(as.data.frame(exprs(exprSet1))), 2, density)
+plot(NA, xlim=range(sapply(dens, "[", "x")), ylim=range(sapply(dens, "[", "y")))
+distribution <- mapply(lines, dens, col=mycols)
+distribution <- mapply(lines, dens)
+if(!require("affy")) {}
+if(!require("affy")) {BiocManager::install("affy")}
+BiocManager::install("affy")
+# Libraries' installation and importation
+if (!requireNamespace("BiocManager", quietly = TRUE))
+install.packages("BiocManager")
+packages <- c("affy", "limma", "genefilter", "hgu133plus2.db")
+for package in packages {
+# Libraries' installation and importation
+if (!requireNamespace("BiocManager", quietly = TRUE))
+install.packages("BiocManager")
+packages <- c("affy", "limma", "genefilter", "hgu133plus2.db")
+for(package in packages) {
+if(!require(package)) {BiocManager::install(package)}
+library(package)
+}
+# Libraries' installation and importation
+if (!requireNamespace("BiocManager", quietly = TRUE))
+install.packages("BiocManager")
+packages <- c("affy", "limma", "genefilter", "hgu133plus2.db")
+for(p in packages) {
+if(!require(p)) {BiocManager::install(p)}
+library(p)
+}
+# Libraries' installation and importation
+if (!requireNamespace("BiocManager", quietly = TRUE))
+install.packages("BiocManager")
+packages <- c("affy", "limma", "genefilter", "hgu133plus2.db")
+for(package in packages) {
+print(package)
+if(!require(package)) {BiocManager::install(package)}
+library(package)
+}
+# Libraries' installation and importation
+if (!requireNamespace("BiocManager", quietly = TRUE))
+install.packages("BiocManager")
+packages <- c("affy", "limma", "genefilter", "hgu133plus2.db")
+for(package in packages) {
+p <- package
+if(!require(p)) {BiocManager::install(p)}
+library(p)
+}
+# Libraries' installation and importation
+if (!requireNamespace("BiocManager", quietly = TRUE))
+install.packages("BiocManager")
+packages <- c("affy", "limma", "genefilter", "hgu133plus2.db")
+for(package in packages) {
+p <- print(package)
+if(!require(p)) {BiocManager::install(p)}
+library(p)
+}
+packages <- matrix("affy", "limma", "genefilter", "hgu133plus2.db")
+help("matrix")
+packages <- matrix(data = c("affy", "limma", "genefilter", "hgu133plus2.db"))
+packages
+apply(packages, 2, if(!require(p)) {BiocManager::install(p)})
+apply(packages, 2, function(p) {if(!require(p)) {BiocManager::install(p)})
+apply(packages, 2, function(p) {if(!require(p)) {BiocManager::install(p)}})
+# Libraries' installation and importation
+if (!requireNamespace("BiocManager", quietly = TRUE))
+install.packages("BiocManager")
+packages <- matrix(data = c("affy", "limma", "genefilter", "hgu133plus2.db"))
+apply(packages, 2, function(p) {if(!require(p)) {BiocManager::install(p)}})
+apply(packages, 2, library(p))
+# Libraries' installation and importation
+if (!requireNamespace("BiocManager", quietly = TRUE))
+install.packages("BiocManager")
+packages <- matrix(data = c("affy", "limma", "genefilter", "hgu133plus2.db"))
+apply(packages, 2, function(p) {if(!require(p)) {BiocManager::install(p)}})
+apply(packages, 2, function(p) library(p))
+apply(packages, 2, function(p) {library(p)})
+detach("package:hgu133plus2cdf", unload = TRUE)
+packages <- matrix(data = c("affy", "limma", "genefilter", "hgu133plus2.db"))
+apply(packages, 2, function(p) {library(p)})
+apply(packages, 2, function(pa) {library(pa)})
+packages
+apply(packages, 1, function(p) {if(!require(p)) {BiocManager::install(p)}})
+apply(packages, 1, function(p) {
+print(p)
+if(require(p)) {BiocManager::install(p)}
+})
+help(require)
+apply(packages, 1, function(p) {
+print(p)
+if(require(p)) {BiocManager::install(p)}
+}
+)
+apply(packages, 1, function(pa) library(pa))
+apply(packages, 1, function(pa) print(pa); library(pa))
+apply(packages, 1, function(pa) print(pa), library(pa))
+apply(packages, 1, function(pa) {print(pa); library(pa)})
+apply(packages, 1, function(pa) {library(pa)})
+# Libraries' installation and importation
+if (!requireNamespace("BiocManager", quietly = TRUE))
+install.packages("BiocManager")
+packages <- matrix(data = c("affy", "limma", "genefilter", "hgu133plus2.db"))
+apply(packages, 1, function(p) {
+print(p)
+if(!require(p)) {BiocManager::install(p)}
+}
+)
+apply(packages, 1, function(p) library(p))
+help("apply")
+source('C:/Users/jandr/Desktop/Personal data/3. Universidad/Cursos/5. Máster/2. Máster Año Pasado/Transcriptómica/Project/Microarray.R', echo=TRUE)

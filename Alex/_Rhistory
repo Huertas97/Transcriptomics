@@ -1,0 +1,67 @@
+# Libraries' installation and importation
+if (!requireNamespace("BiocManager", quietly = TRUE))
+install.packages("BiocManager")
+packages <- matrix(data = c("affy", "limma", "genefilter", "hgu133plus2.db"))
+apply(packages, 1, function(p) {
+print(p)
+if(require(p)) {BiocManager::install(p)}
+}
+)
+apply(packages, 1, function(p) library(p), character.only=TRUE)
+apply(packages, 1, function(p) library(p, character.only=TRUE))
+apply(packages, 1, function(p) library(p, character.only=TRUE), verbose = FALSE)
+apply(packages, 1, function(p) library(p, character.only=TRUE, verbose = FALSE))
+# 2. Setting of the working directory
+setwd("C:/Users/jandr/Google Drive/Máster/1_Transcriptómica_Regulación_y_Epigenómica/3_Entregas/Datos")
+# 3. Design creation and data loading
+targets_1 <- cbind(FileName = c("GSM455115.CEL", "GSM455116.CEL",
+"GSM455117.CEL", "GSM455121.CEL",
+"GSM455122.CEL", "GSM455123.CEL"),
+Classes = c("KOPT_K1_DMSO", "KOPT_K1_DMSO", "KOPT_K1_DMSO",
+"KOPT_K1_SAHM1", "KOPT_K1_SAHM1", "KOPT_K1_SAHM1")
+)
+rownames(targets_1) <- c("GSM455115.CEL", "GSM455116.CEL", "GSM455117.CEL",
+"GSM455121.CEL", "GSM455122.CEL", "GSM455123.CEL")
+data_1 <- ReadAffy(filenames=targets_1[,"FileName"]) # Import intensities from
+# Affymetrix arrays (.CEL)
+# AffyBatch object
+# 4. Conversion of the AffyBatch object to an exprSet object, including the
+#    correction and normalization of the recorded intensities.
+exprSet1 <- expresso(data_1,
+bg.correct = TRUE,
+bgcorrect.method="rma",
+normalize = TRUE,
+normalize.method="quantiles",
+pmcorrect.method="pmonly",
+summary.method="medianpolish",
+verbose = TRUE) # Normalization with RMA, generating an
+# exprSet object with intensities in log
+# scale.
+# 5. Checking that the process has correctly been done
+boxplot(data_1, main="Boxplot Before Normalization",
+col = c(rep("lightseagreen", 3), rep("lightsalmon", 3)))
+boxplot(data.frame(as.data.frame(exprs(exprSet1))),
+main="Boxplot After Normalization (log scale)",
+col = c(rep("lightseagreen", 3), rep("lightsalmon", 3)))
+# Libraries' installation and importation
+if (!requireNamespace("BiocManager", quietly = TRUE))
+install.packages("BiocManager")
+packages <- matrix(data = c("affy", "limma", "genefilter", "hgu133plus2.db"))
+apply(packages, 1, function(p) {
+print(p)
+if(require(p)) {BiocManager::install(p)}
+}
+)
+apply(packages, 1, function(p) library(p, character.only=TRUE, verbose = FALSE))
+apply(packages, 1, function(p) library(p, character.only=TRUE, verbose = TRUE))
+apply(packages, 1, function(p) library(p, character.only=TRUE, verbose = FALSE))
+# Libraries' installation and importation
+if (!requireNamespace("BiocManager", quietly = TRUE))
+install.packages("BiocManager")
+packages <- matrix(data = c("affy", "limma", "genefilter", "hgu133plus2.db"))
+apply(packages, 1, function(p) {
+print(p)
+if(require(p)) {BiocManager::install(p)}
+library(p, character.only=TRUE)
+}
+)

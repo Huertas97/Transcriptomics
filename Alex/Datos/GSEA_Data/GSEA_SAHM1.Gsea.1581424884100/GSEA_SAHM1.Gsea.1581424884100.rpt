@@ -1,0 +1,34 @@
+producer_class	xtools.gsea.Gsea
+producer_timestamp	1581424884100
+param	zip_report	false
+param	num	100
+param	scoring_scheme	classic
+param	norm	meandiv
+param	out	C:\Users\jandr\Google Drive\Máster\1_Transcriptómica_Regulación_y_Epigenómica\3_Entregas\Datos\GSEA_Data
+param	mode	Max_probe
+param	include_only_symbols	true
+param	set_max	500
+param	gmx	C:\Users\jandr\AppData\Local\Temp\from_text_entry_16801272936495881305.grp
+param	plot_top_x	20
+param	nperm	1000
+param	order	descending
+param	rpt_label	GSEA_SAHM1
+param	rnd_seed	timestamp
+param	set_min	15
+param	res	C:\Users\jandr\Google Drive\Máster\1_Transcriptómica_Regulación_y_Epigenómica\3_Entregas\Datos\GSEA_Data\KOPT-K1_Data.txt
+param	chip	ftp.broadinstitute.org://pub/gsea/annotations_versioned/Human_AFFY_HG_U133_MSigDB.v7.0.chip
+param	create_svgs	false
+param	cls	C:\Users\jandr\Google Drive\Máster\1_Transcriptómica_Regulación_y_Epigenómica\3_Entregas\Datos\GSEA_Data\GSEA_SAHM1_classes.cls#KOPT_K1_DMSO_versus_KOPT_K1_SAHM1
+param	sort	real
+param	create_gcts	false
+param	help	false
+param	save_rnd_lists	false
+param	median	false
+param	metric	tTest
+param	make_sets	true
+param	rnd_type	no_balance
+param	gui	false
+param	permute	phenotype
+param	collapse	Collapse
+
+file	C:\Users\jandr\Google Drive\Máster\1_Transcriptómica_Regulación_y_Epigenómica\3_Entregas\Datos\GSEA_Data\GSEA_SAHM1.Gsea.1581424884100\index.html
