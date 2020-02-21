@@ -1,32 +1,34 @@
 ---
-title: "Notas Trabajo Transcriptómica: Direct inhibition of the NOTCH transcription factor complex"
+title: 'Notas Trabajo Transcriptómica: Direct inhibition of the NOTCH transcription factor complex'
 author: "Diego Mañanes"
 documentclass: article
 output:
+  word_document:
+    toc: yes
+    toc_depth: '3'
   pdf_document:
     fig_caption: yes
     keep_tex: yes
     number_sections: yes
     toc: yes
     toc_depth: 3
-  html_document: 
+  html_document:
+    collapsed: no
     number_sections: yes
     self_contained: no
-    theme: united
     toc: yes
-    toc_depth: 5  
-    toc_float: true
-    collapsed: no
-urlcolor: blue
-classoption: a4paper
-fontsize: 11pt
+    toc_depth: 5
+    toc_float: yes
 geometry: margin=1in
 header-includes:
-  - \usepackage{graphicx}
-  - \usepackage{float}
-  - \usepackage{pdflscape}
-  - \newcommand{\blandscape}{\begin{landscape}}
-  - \newcommand{\elandscape}{\end{landscape}}
+- \usepackage{graphicx}
+- \usepackage{float}
+- \usepackage{pdflscape}
+- \newcommand{\blandscape}{\begin{landscape}}
+- \newcommand{\elandscape}{\end{landscape}}
+fontsize: 11pt
+classoption: a4paper
+urlcolor: blue
 ---
 
 ## Contexto
@@ -232,10 +234,19 @@ representan la media +. s.c. (n = 3). *P<0.05, **P<0.01.
 
 Creo que respecto expresión génica es lo único que hacen. Tanta historia pa' esto.
 
+## Diferencias entre las cepas
+
+KOPT-KI: <https://humantallcelllines.wordpress.com/comprehensivetable/kopt-k1/>
+HGB-ALL: <https://humantallcelllines.wordpress.com/comprehensivetable/hpb-all/>
 
 ## Análisis transcripcional
 
-```{r setup, echo=FALSE}
+**Links de interés:**
+
+* <https://www.bioconductor.org/help/course-materials/2010/CSAMA10/100614-microarrays-huber.pdf>
+* <https://www.taylorfrancis.com/books/9780429130588>
+
+```{r setup, echo=FALSE, message=FALSE, warning=FALSE}
 
 projectPath <- file.path("/home/diego/Documentos/proyectos_master/proyectos_transcriptomica/trabajo_transcriptomica")
 
@@ -252,23 +263,38 @@ if (!dir.exists(outputPath) | !dir.exists(file.path(outputPath, "Plots"))) {
   dir.create(file.path(outputPath, "Plots"), showWarnings = F)
 }
 
+source(file.path(projectPath, "helperFunctions.R"))
+
 ## Settings to knitr
 knitr::opts_chunk$set(
-    echo = FALSE,
     fig.align = "center",
     fig.path = file.path(outputPath, "Plots/"),
     fig.pos = "H",
     message = FALSE,
     warning = FALSE,
     comment = NA,
-    dev = c("jpeg"),
+    dev = "jpeg",
     dpi = 300
 )
 
-library("affy")
-library("limma")
-library("genefilter")
+options(stringsAsFactors = FALSE)
 
+library(dplyr)
+library(affy)
+library(limma)
+library(genefilter)
+library(RColorBrewer)
+library(ggplot2)
+library(hgu133plus2.db)
+library(kableExtra)
+library(tidyr)
+library(factoextra)
+library(gridExtra)
+library(corrplot) # creo que no lo uso
+library(FactoMineR)
+library(dendextend) # creo que no lo uso
+library(pheatmap)
+library(plot3D)
 ```
 
 ### Carga de datos
@@ -278,41 +304,166 @@ Construímos el fichero _targets_ mediante un dataframe con información relativ
 a las muestras: condición y línea celular. 
 
 ```{r readCEL}
-
-sample_names <- dir(dataPath, pattern = ".+\\.CEL$")
+sample_names <- substring(dir(dataPath, pattern = ".+\\.CEL$"), 1, 9)
 
 dfTargets <- data.frame(FileName = sample_names,
                         Condition = c(rep("DMSO", 6), rep("SAHM1", 6)),
-                        CellLine = rep(c(rep("KOPT-K1", 3), rep("HPB-ALL", 3)), 2),
+                        CellLine = rep(c(rep("KOPT-K1", 3), 
+                                         rep("HPB-ALL", 3)), 2),
                         row.names = sample_names)
 
-rawDataAffy <- ReadAffy(filenames = dir(dataPath, pattern = ".+\\.CEL$", full.names = TRUE),
+rawDataAffy <- ReadAffy(filenames = dir(dataPath, pattern = ".+\\.CEL$", 
+                                        full.names = TRUE),
                         phenoData = dfTargets)
-
 
 ## Datos de expresión crudos
 head(rawDataAffy@assayData$exprs)
-
 ```
+```{r colorsPlots}
+cols <- list(cellBoxplot = brewer.pal(3, "Pastel2"),
+            drugBoxplot = brewer.pal(3, "Pastel1"),
+            drugDens = brewer.pal(length(sample_names), "Paired"),
+            durgPoints = c("#0073C2FF", "#EFC000FF"))
+```
+
+<!-- Puedes ver los arrays, es gracioso.  -->
+
+<!-- ```{r} -->
+<!-- op = par(mfrow = c(2,3)) -->
+<!-- for (i in 1:12){image(rawDataAffy[,i],main=dfTargets$Condition[i])} -->
+<!-- ``` -->
 
 ### Normalización de los datos
 
 Normalización de los datos a través de la función ``expresso`` del paquete 
 ``limma``. El resultado es un objeto de la clase ``exprSet``. 
 
-```{r exprSetNorm}
-if (file.exists(file.path(outputPath, paste(prefix, "exprSet.Norm.rds", sep = ".")))) {
+Dado que normalizar con todas las líneas celulares juntas probablemente no sea
+lo más correcto (mirar resultados de comparar controles de las líneas celulares),
+vamos a separar por líneas celulares. Vamos a, en primer lugar, normalizar todo 
+junto para observar el aspecto de los datos y, posteriormente, a normalizar 
+cada línea celular por separado, lo cual será probablemente lo más correcto. 
+
+Respecto al método de normalización, etc. lo mejor de cara al trabajo 
+probablemente sea comentar que hay otros métodos pero que, por consenso, la
+mejor opción es utilizar quantiles. 
+
+#### Normalización de todo junto
+
+```{r exprSetNormAll}
+if (file.exists(file.path(outputPath, paste(prefix,
+                          "exprSet.All.Norm.rds", sep = ".")))) {
   
-  message(paste("Load exprSet object with Normalized data from", 
-                file.path(outputPath, paste(prefix,"exprSet.Norm.rds", sep = "."))))
+  message(paste("Load exprSet object with Normalized data from",
+                file.path(outputPath, paste(prefix,
+                          "exprSet.All.Norm.rds", sep = "."))))
   
-  exprSet <- readRDS(file = file.path(outputPath, paste(prefix, 
-                                                        "exprSet.Norm.rds", sep = ".")))
+  exprSet.All <- readRDS(file = file.path(outputPath, paste(prefix,
+                                          "exprSet.All.Norm.rds", sep = ".")))
+} else {
+  
+  exprSet.All <- expresso(rawDataAffy,
+                      bg.correct = TRUE,
+                      bgcorrect.method="rma",
+                      normalize = TRUE,
+                      normalize.method="quantiles",
+                      pmcorrect.method="pmonly",
+                      summary.method="medianpolish",
+                      verbose = TRUE)
+  
+  saveRDS(exprSet.All, file = file.path(outputPath, paste(prefix,
+                                    "exprSet.All.Norm.rds", sep = ".")))
+}
+```
+
+##### Boxplots antes y después de normalizar
+
+Igual estaría bien pintarlos por línea celular para explicar como se ve un patrón
+entre ambas líneas. Explicar que el hecho de normlaizar todo junto puede provocar
+qye haya genes diferencialmente expresados en cada línea celular que, producto
+de la normalización, sean enmascarados.
+
+```{r boxplotsBaseAll}
+boxplot(rawDataAffy,
+		 main="Boxplot Before Normalization",
+		 col = cols$cellBoxplot[as.factor(dfTargets$CellLine)],
+		 cex.axis = 0.84, las = 2)
+legend("topright", legend = levels(as.factor(dfTargets$CellLine)),
+       fill = cols$cellBoxplot, title = "Treatment")         
+
+exprseset <- as.data.frame(exprs(exprSet.All))
+boxplot(exprseset,
+		 main="Boxplot After Normalization (log scale)",
+		 col = cols$cellBoxplot[as.factor(dfTargets$CellLine)],
+		 cex.axis = 0.84, las = 2)
+```
+
+##### Distribución de las intensidades antes y después de normalizar
+
+```{r histIntensitiesAll}
+hist(rawDataAffy, lty = rep(1, nrow(dfTargets)), 
+     col = cols$drugDens[as.factor(dfTargets$Condition)])
+
+legend("topright", dfTargets$FileName,
+       lty = rep(1, nrow(dfTargets)),
+       col = cols$drugDens[as.factor(dfTargets$Condition)],
+       cex = 0.95)
+
+plotDensities(exprSet.All, legend = FALSE, 
+              col = cols$drugDen[as.factor(dfTargets$Condition)])
+legend("topright", dfTargets$FileName,
+       lty = rep(1, nrow(dfTargets)),
+       col = cols$drugDens[as.factor(dfTargets$Condition)],
+       cex = 0.95)
+```
+
+
+##### PCA
+
+```{r pcaKOPT-K1, fig.asp==2}
+allPCA <- prcomp(t(exprs(exprSet.All)))
+
+fviz_eig(allPCA)
+## aumentar tamaño puntos
+p1 <- fviz_pca_ind(allPCA, col.ind = as.factor(dfTargets$Condition),
+             palette = c("#0073C2FF", "#EFC000FF", "#868686FF"),
+             geom = "point", legend.title = "Condition", repel = TRUE,
+             mean.point = FALSE)
+p2 <- fviz_pca_ind(allPCA, col.ind = as.factor(dfTargets$CellLine),
+             palette = c("#0073C2FF", "#EFC000FF", "#868686FF"),
+             geom = "point", legend.title = "Cell line", repel = TRUE,
+             mean.point = FALSE)
+grid.arrange(p1, p2, nrow = 2)
+```
+
+
+
+```{r dfMetadata}
+dfMetadata.KOPTK1 <- dfTargets %>% filter(CellLine == "KOPT-K1")
+rownames(dfMetadata.KOPTK1) <- dfMetadata.KOPTK1$FileName
+dfMetadata.HPBALL <- dfTargets %>% filter(CellLine == "HPB-ALL")
+rownames(dfMetadata.HPBALL) <- dfMetadata.HPBALL$FileName
+```
+
+
+
+#### Normalización KOPT-K1
+
+```{r exprSetNormKOPT-K1}
+if (file.exists(file.path(outputPath, paste(prefix,
+                          "exprSet.KOPT-K1.Norm.rds", sep = ".")))) {
+  
+  message(paste("Load exprSet KOPT-K1 object with Normalized data from", 
+                file.path(outputPath, paste(prefix,
+                          "exprSet.KOPT-K1.Norm.rds", sep = "."))))
+  
+  exprSet.KOPTK1 <- readRDS(file = file.path(outputPath, paste(prefix, 
+                                   "exprSet.KOPT-K1.Norm.rds", sep = ".")))
   
 } else {
   
-  exprSet <- expresso(rawDataAffy,
-                      bg.correct = TRUE, 
+  exprSet.KOPTK1 <- expresso(rawDataAffy[, dfTargets$CellLine == "KOPT-K1"],
+                      bg.correct = TRUE,
                       bgcorrect.method="rma",
                       normalize = TRUE, 
                       normalize.method="quantiles", 
@@ -320,30 +471,628 @@ if (file.exists(file.path(outputPath, paste(prefix, "exprSet.Norm.rds", sep = ".
                       summary.method="medianpolish",
                       verbose = TRUE)
   
-  saveRDS(exprSet, file = file.path(outputPath, paste(prefix, 
-                                                        "exprSet.Norm.rds", sep = ".")))
+  saveRDS(exprSet.KOPTK1, file = file.path(outputPath, paste(prefix, 
+                                 "exprSet.KOPT-K1.Norm.rds", sep = ".")))
+}
+```
+
+
+##### Boxplots de los datos antes vs después de normalizar
+
+* Colocar la leyenda en los márgenes. 
+* Meter en una variable los colores, así no llamas 30 veces a la misma función
+
+```{r boxplotsBaseKOPTK1}
+boxplot(rawDataAffy[, dfTargets$CellLine == "KOPT-K1"],
+		 main="Boxplot Before Normalization",
+		 col = cols$drugBoxplot[as.factor(dfMetadata.KOPTK1$Condition)],
+		 cex.axis = 0.84)
+legend("topright", legend = levels(as.factor(dfMetadata.KOPTK1$Condition)),
+       fill = cols$drugBoxplot, title = "Treatment")         
+
+exprseset <- as.data.frame(exprs(exprSet.KOPTK1))
+boxplot(exprseset,
+		 main="Boxplot After Normalization (log scale)",
+		 col = cols$drugBoxplot[as.factor(dfMetadata.KOPTK1$Condition)],
+		 cex.axis = 0.84)
+```
+
+Para hacer boxplots con ggplot tenemos el problema de que al cabrón solo le 
+gustan las tablas con variables como columnas, por lo que deberíamos hacer
+un melt. 
+
+No sé cómo está estructurado el objeto affyBatch, ya que cuando llamámos a los 
+datos mediante assayData()$exprs, el número de filas de es 1 millón y pico 
+cuando sólo hay 54mil entradas. Mientras no sepa cómo emplea los datos boxplot,
+es decir, de dónde los saca, no puedo utilizar ggplot. 
+
+
+```{r ggplotTest}
+
+# df <- as.data.frame(rawDataAffy@assayData$exprs[, dfMetadata.KOPTK1$FileName])
+# x <- melt.data.frame(df)    
+# 
+# ggplot(x) +
+#   geom_boxplot(aes(x = variable, y = value))
+```
+
+##### Distribución de las intensidades antes y después de normalizar
+
+```{r histIntensitiesKOPT-K1}
+hist(rawDataAffy[, dfTargets$CellLine == "KOPT-K1"], 
+     lty = rep(1, nrow(dfMetadata.KOPTK1)), 
+     col = cols$drugDens[as.factor(dfMetadata.KOPTK1$FileName)])
+
+legend("topright", dfMetadata.HPBALL$FileName,
+       lty = rep(1, nrow(dfMetadata.KOPTK1)),
+       col = cols$drugDens[as.factor(dfMetadata.KOPTK1$FileName)],
+       cex = 0.95)
+
+plotDensities(exprSet.KOPTK1, legend = FALSE, 
+              col = cols$drugDen[as.factor(dfMetadata.KOPTK1$FileName)])
+
+legend("topright", dfMetadata.KOPTK1$FileName,
+       lty = rep(1, nrow(dfMetadata.KOPTK1)),
+       col = cols$drugDen,
+       cex = 0.95)
+```
+
+##### PCA
+
+```{r pcaKOPT-K1}
+koptk1PCA <- prcomp(t(exprs(exprSet.KOPTK1)))
+
+fviz_eig(koptk1PCA)
+
+fviz_pca_ind(koptk1PCA, col.ind = as.factor(dfMetadata.KOPTK1$Condition),
+             palette = c("#0073C2FF", "#EFC000FF", "#868686FF"),
+             geom = "text", legend.title = "Condition", repel = TRUE)
+
+```
+
+#### Normalización HPB-ALL
+
+```{r exprSetNormHPB-ALL}
+if (file.exists(file.path(outputPath, paste(prefix, 
+                          "exprSet.HPB-ALL.Norm.rds", sep = ".")))) {
+  
+  message(paste("Load exprSet HPB-ALL object with Normalized data from", 
+                file.path(outputPath, paste(prefix,
+                          "exprSet.HPB-ALL.Norm.rds", sep = "."))))
+  
+  exprSet.HPBALL <- readRDS(file = file.path(outputPath, paste(prefix, 
+                            "exprSet.HPB-ALL.Norm.rds", sep = ".")))
+  
+} else {
+  
+  exprSet.HPBALL <- expresso(rawDataAffy[, dfTargets$CellLine == "HPB-ALL"],
+                      bg.correct = TRUE,
+                      bgcorrect.method="rma",
+                      normalize = TRUE, 
+                      normalize.method="quantiles", 
+                      pmcorrect.method="pmonly", 
+                      summary.method="medianpolish",
+                      verbose = TRUE)
+  
+  saveRDS(exprSet.HPBALL, file = file.path(outputPath, paste(prefix, 
+                                      "exprSet.HPB-ALL.Norm.rds", sep = ".")))
   
 }
 ```
 
-### Boxplots de los datos antes vs después de normalizar
+##### Boxplots de los datos antes vs después de normalizar
 
-```{r}
-boxplot(rawDataAffy,
+Podrías modificar el par y hacerlo todo de una, quitando las labels de X de hecho. 
+
+```{r boxplotsBaseHPB-ALL}
+boxplot(rawDataAffy[, dfTargets$CellLine == "HPB-ALL"],
 		 main="Boxplot Before Normalization",
-		 col = "lightgrey")
+		 col = cols$drugBoxplot[as.factor(dfMetadata.HPBALL$Condition)],
+		 cex.axis = 0.84)
+legend("topright", legend = levels(as.factor(dfMetadata.HPBALL$Condition)),
+       fill = cols$drugBoxplot, title = "Treatment")         
 
-exprseset <- as.data.frame(exprs(exprSet))		
-boxplot(data.frame(exprseset),
+exprseset <- as.data.frame(exprs(exprSet.HPBALL))
+boxplot(exprseset,
 		 main="Boxplot After Normalization (log scale)",
-		 col = "lightgrey")
+		 col = cols$drugBoxplot[as.factor(dfMetadata.HPBALL$Condition)],
+		 cex.axis = 0.84)
+```
+
+##### Distribución de las intensidades antes y después de normalizar
+
+```{r histIntensitiesHPB-ALL}
+hist(rawDataAffy[, dfTargets$CellLine == "HPB-ALL"], 
+     lty = rep(1, length(sample_names)), 
+     col = cols$drugDens[as.factor(dfMetadata.HPBALL$FileName)])
+
+legend("topright", dfMetadata.HPBALL$FileName,
+       lty = rep(1,length(dfMetadata.HPBALL$FileName)),
+       col = cols$drugDens[as.factor(dfMetadata.HPBALL$FileName)],
+       cex = 0.95)
+
+plotDensities(exprSet.HPBALL, legend = FALSE, 
+              col = cols$drugDen[as.factor(dfMetadata.HPBALL$FileName)])
+
+legend("topright", dfMetadata.HPBALL$FileName,
+       lty = rep(1,length(dfMetadata.HPBALL$FileName)),
+       col = cols$drugDen,
+       cex = 0.95)
+
+# hist(dens, lty = rep(1, length(sample_names)), 
+#      col = brewer.pal(length(sample_names), 
+#                       "Dark2")[as.factor(dfMetadata.HPBALL$FileName)])
+# dens <- apply(exprseset, 2, density)
+# 
+# plot(NA, xlim = range(sapply(dens, "[", "x")), ylim = range(sapply(dens, "[", "y")))
+# distribution <- mapply(lines, dens, col=brewer.pal(length(sample_names), 
+#                       "Dark2")[as.factor(dfMetadata.HPBALL$FileName)])
+```
+
+<!-- ##### MA plot -->
+
+<!-- ```{r MAPlotHPB-ALL} -->
+
+<!-- # y <- rawDataAffy -->
+<!-- # ma.plot(rawDataAffy) -->
+<!-- # plotMA(exprSet.HPBALL, array = 6) -->
+
+<!-- ``` -->
+
+
+
+**Consideraciones**
+
+* Hay que meter títulos a los plots y decidir el tema de las leyendas.
+* Modificar márgenes para leyenda y para evitar consumir mucho espacio.
+* Respecto a los plots de densidades, mirar qué consideraciones se contemplan
+cuando se representan en escala logarítmica y por qué una opción u otra. 
+* Mirar más plots respecto a la normalización: se puede hacer un scatterplot, 
+y un MAplot. 
+
+**Tareas para cuando puedas: hacer los dos tipos de plots que faltan**
+
+
+##### PCA 
+
+```{r}
+hpballPCA <- prcomp(t(exprs(exprSet.HPBALL)))
+
+fviz_eig(hpballPCA)
+
+fviz_pca_ind(hpballPCA, col.ind = as.factor(dfMetadata.HPBALL$Condition),
+             palette = c("#0073C2FF", "#EFC000FF", "#868686FF"),
+             geom = "text", legend.title = "Condition", repel = TRUE)
 ```
 
 
+
+
+### Anotación de sondas
+
+**Links:** 
+
+* <https://bioconductor.org/packages/release/bioc/vignettes/AnnotationDbi/inst/doc/IntroToAnnotationPackages.pdf>
+
+Las sondas de este microarray pertenecen al set hgu133plus2.db, el cual está 
+disponible en Bioconductor. Por lo tanto, únicamente tenemos que instalarnos
+y cargarnos la librería en cuestión (mirar primer boxcode), paquete que 
+pertenece al paquete ``AnnotationDbi``. 
+
+Respecto a los métodos que podemos utilizar, creo que la mejor opción es optar
+por ``mapIds``, ya que no devuelve entradas repetidas y no necesitamos más 
+información además del SYMBOL. En caso de que sí, sería interesante utilizar 
+``select``, pero introduce una línea nueva cada vez que el número de encuentros
+de una sonda es mayor que uno. Habría que limpiar la tabla quedándonos 
+únicamente ocn los únicos y aun así no parece que funcione. En el caso de que
+queramos extraer información de tipo GO, sí sería interesante este método. 
+
+Información disponible en hgu133plus2.db:
+
+```{r listKeys, echo=FALSE}
+keytypes(hgu133plus2.db)
+```
+
+
+```{r annotationsDbi}
+## nombre de todas las sondas
+probenames.All <- rownames(exprSet.All)
+
+genesMetadata.All_2 <- mget(probenames.All, hgu133plus2SYMBOL)
+
+## k == probenames.All
+# k <- keys(hgu133plus2.db, keytype="PROBEID")
+
+## devuelve entradas repetidas, cuidado. Permite más de 1 columna
+genesMetadata.All_3 <- select(hgu133plus2.db,
+                              probenames.All, 
+                              columns = c("SYMBOL"),
+                              keytype = "PROBEID")
+
+## solo puede usar una columna. dim(input) == dim(output)
+## hacer un genesMetadata más completo
+## este está guay para consultar
+genesMetadata.All <- annotateMatrix(probenames.All, hgu133plus2.db, 
+                                    c("ALIAS", "ENSEMBL", "ENTREZID", 
+                                      "SYMBOL", "GO"))
+
+# genesMetadata.All <- as.data.frame(mapIds(hgu133plus2.db,
+#             keys = probenames.All, 
+#             column = "ENSEMBL", 
+#             keytype = "PROBEID"))
+
+```
+
+### Filtrado de genes
+
+Antes de llevar a cabo el análisis de expresión diferencial, vamos a llevar a
+cabo un filtrado del set de genes con el que contamos. Para evitar realizar más
+comparaciones de las necesarias cuando llevemos a cabo el ajuste de p-valores
+por multiple testing y quedarnos solo con los genes más variable (aquellos que
+explican mayor variabilidad en nuestros datos), llevamos a cabo el cálculo
+del rango interquartílico, estableciendo un umbal mínimo:
+
+**Mirar boxes para eso**
+
+Vamos a utilizar el parámetro IQR (rango itnterquartiilico) que seleccionará 
+aquellos genes con un IQR mayor de 0.5. Aquellos con un IQR bajo, es decir, con
+poca varianza (boxplot muy pequeño), no nos interesan, ya que son genes que 
+varían poco a lo largo de los 10 arrays. Un patrón plano nos va a molestar a
+la hora de calcular el FDR. el efcto del azar será menor, no es lo mismo testar 
+20mil que 10mil genes: nos permitirá obtener p-valores más bajos. Reduciremos
+a lista a genes que presentan una varianza razonable. 
+
+**Nota:** De cara al trabajo estaría bien buscar métodos alternativos, aunque
+parece que es el mejor método,. En cualquier caso, podemos buscar por ahí 
+otras formas de obtener genes variables. Un ejemplo sería la aproximación que
+llevamos a cabo con Seurat, se calcula la media y la varinza y se plotean, 
+quedándonos solo con los genes por encima de X umbrales. La naturaleza de los 
+datos de microarrays y de scRNAseq es muy diferente, ya que en los últimos
+el número de dropouts es muy alto, así que hay que asegurarse de si podemos 
+llevar a cabo este tipo de análisis. 
+
+**Procedimiento**
+
+Hay dos opciones:
+
+* O hacer las anotaciones después y utilizar ``varFilter``
+* O hacer las anotaciones antes y utilizar ``nsFilter``
+
+#### Filtrado antes de las anotaciones con ``varFilter``
+
+```{r filterFeaturesAll1}
+esetIQR.All1 <- varFilter(exprSet.All, var.func = IQR, 
+                         var.cutoff = 0.5, filterByQuantile = TRUE)
+
+dim(exprs(exprSet.All))
+dim(exprs(esetIQR.All1))
+```
+
+#### Filtrado después de las anotaciones con ``nsFilter``
+
+Devuelve una lista en lugar de un objeto de tipo exprSet. Puede ser útil para 
+ver qué genes deberían quedar, ya que nos da información detallada sobre los 
+genes filtrados. 
+
+Una alternativa para obtener el mismo resultado pero en un objeto exprSet es la
+función ``featureFilter``.
+
+```{r filterFeaturesAll2}
+exprSet.All.CP <- exprSet.All
+fData(exprSet.All.CP) <- genesMetadata.All
+
+## lista con datos del filtrado
+listIQR.All2 <- nsFilter(exprSet.All, require.entrez = TRUE,
+                         var.func = IQR, 
+                         var.cutoff = 0.5, filterByQuantile = TRUE)
+listIQR.All2
+
+## objeto exprSet
+esetIQR.All2 <- featureFilter(exprSet.All, require.entrez = TRUE)
+
+dim(exprseset)
+dim(esetIQR.All2)
+
+```
+
+### Análisis de expresión diferencial
+
+Respecto al análisis de expresión diferencial, en el paper no viene demasiada
+información al respecto. En cualquier caso, el esquema de cara al trabajo 
+debería ser el siguiente:
+* Introducción de por qué hacer análisis de expresión diferencial, qué estamos
+viendo cuando lo hacemos (variabilidad intragénica, etc).
+* Por qué hacer expresión diferencial de las dos líneas celulares a la vez no
+tiene sentido: debería haber un apartado previo, o en este mismo, comentando las
+diferencias entre las dos líneas. Después, podemos enseñar qué resultados da 
+hacerlo con todo junto, ya que Alejandro comentó que los p-valores, en general,
+no eran significativos. 
+* Hacer el análisis de las líneas por separado y comentar los resultados: mirar
+información biológica sobre los genes más expresados, etc. 
+
+De cara a hacer el análisis por genesets (GSEA), podríamos hacer un ranking 
+utilizando los valores del estadístico t: cuanto más alto, genes más 
+diferencialmente expresados. 
+
+#### Expresión diferencial con las dos líneas celulares juntas
+
+##### Ejemplo: workflow
+
+Este es solo un ejemplo del flujo de trabajo que hay que llevar a cabo cuando 
+hagamos un análisis de expresión diferencial:
+
+1. En primer lugar debemos construir una matriz diseño que establezca los 
+grupos que vamos a comparar. En este caso queremos comparar las dos condiciones
+(control y droga a probar) de todas las líneas celulares juntas, así que podemos 
+hacerlo utilizando la columna ``dfTargets$Condition``. Con la función 
+``model.matrix`` generamos una matriz que establece dichas relaciones. 
+**Buscar si realmente es necesario pasarlo a una matriz de este tipo en lugar 
+de utilizar directamente los factores.**
+2. Después llevamos a cabo el ajuste de regresión lineal para cada gen en base
+al diseño dado en la matriz anterior. 
+3. Con ``makeContrasts`` onstruímos la matriz de constraste correspondiente al
+disñeo establecido anteriormente. 
+4. Con ``contrast.fit``, dado el modelo linear generado anteriormente, computamos
+los coeficientes estumados y el error estándar para el set de constrastes dado. 
+5. Con ``eBayes`` computamos la variación del estadístico t, estadístico F y
+log-odds a través de moderación empírica de Bayes de los errores estándar. 
+
+A la tabla resultante le podremos añadir las anotaciones, teniendo así una 
+tabla de los genes diferencialmente expresados entre dos grupos. 
+
+```{r exprDiffAll}
+
+x <- as.factor(dfTargets$Condition)
+design <- model.matrix(~0 + x)
+
+lmfit <- lmFit(esetIQR.All1, design)
+
+cont.matrix <- makeContrasts(DMSOvsSAHM1 = xDMSO-xSAHM1,levels=design) 
+
+lmfit.cont <- contrasts.fit(lmfit, cont.matrix)
+
+lmfit.cont.ebayes <- eBayes(lmfit.cont)
+```
+
+```{r}
+dfAnnotations <- annotateMatrix(rownames(lmfit.cont.ebayes), 
+                                hgu133plus2.db, c("ALIAS", "ENSEMBL"))
+
+lmfit.cont.ebayes$genes <- dfAnnotations
+```
 
 
 ```{r}
-op = par(mfrow = c(2,3))
-for (i in 1:12){image(rawDataAffy[,i],main=dfTargets$Condition[i])}
+toptableIQR <- topTable(lmfit.cont.ebayes, 
+                        number=dim(exprs(esetIQR.All1))[1], 
+                        adjust.method="BH", sort.by="p")
 ```
 
+
+```{r}
+volcanoplot(lmfit.cont.ebayes, highlight = 5, style = "B-statistic", names = lmfit.cont.ebayes$genes$ALIAS)
+```
+
+#### Expresión diferencial con las líneas por separado
+
+##### HPB-ALL
+
+```{r IQR_HPBALL}
+esetIQR.HPBALL <- varFilter(exprSet.HPBALL, var.func = IQR, 
+                         var.cutoff = 0.5, filterByQuantile = TRUE)
+```
+
+```{r exprDiffHPALL}
+cond <- as.factor(esetIQR.HPBALL$Condition)
+
+design.HPALL <- model.matrix(~0 + cond)
+
+lmfit.HPALL <- lmFit(esetIQR.HPBALL, design.HPALL)
+
+cont.matrix.HPALL <- makeContrasts(DMSOvsSAHM1 = condDMSO-condSAHM1, levels = design.HPALL) 
+
+lmfit.cont.HPALL <- contrasts.fit(lmfit.HPALL, cont.matrix.HPALL)
+
+lmfit.cont.ebayes.HPALL <- eBayes(lmfit.cont.HPALL)
+```
+
+```{r annotateMatrixHPALL, warning=FALSE, message=FALSE}
+dfAnnotations <- annotateMatrix(rownames(lmfit.cont.ebayes.HPALL), 
+                                hgu133plus2.db, c("ALIAS", "ENSEMBL"))
+
+lmfit.cont.ebayes.HPALL$genes <- dfAnnotations
+```
+
+```{r}
+toptableIQR.HPALL <- topTable(lmfit.cont.ebayes.HPALL, 
+                        number = dim(exprs(esetIQR.HPBALL))[1], 
+                        adjust.method = "BH", sort.by = "p")
+
+tableIQR.005.HPALL <- subset(toptableIQR.HPALL, toptableIQR.HPALL$adj.P.Val <= 0.05)
+```
+
+```{r}
+probenames.HPALL <- rownames(tableIQR.005.HPALL)
+
+genesMetadata.HPALL <- data.frame(Symbol = mapIds(hgu133plus2.db,
+                                          keys = probenames.HPALL, 
+                                          column = "ALIAS", 
+                                          keytype = "PROBEID"),
+                                   Ensembl_ID = mapIds(hgu133plus2.db,
+                                          keys = probenames.HPALL, 
+                                          column = "ENSEMBL", 
+                                          keytype = "PROBEID"))
+
+toptableIQR.HPALL <- data.frame(genesMetadata.HPALL, tableIQR.005.HPALL)
+```
+
+```{r}
+volcanoplot(lmfit.cont.ebayes.HPALL, highlight = 5, style = "B-statistic", names = lmfit.cont.ebayes.HPALL$genes$ALIAS)
+```
+
+
+
+##### KOPT-K1
+
+```{r}
+esetIQR.KOPTK1 <- varFilter(exprSet.KOPTK1, var.func = IQR, 
+                         var.cutoff = 0.5, filterByQuantile = TRUE)
+```
+
+```{r exprDiffKOPTK1}
+cond <- as.factor(dfMetadata.KOPTK1$Condition)
+
+design.KOPTK1 <- model.matrix(~0 + cond)
+
+lmfit.KOPTK1 <- lmFit(esetIQR.KOPTK1, design.KOPTK1)
+
+cont.matrix.KOPTK1 <- makeContrasts(DMSOvsSAHM1 = condDMSO-condSAHM1, levels = design.KOPTK1) 
+
+lmfit.cont.KOPTK1 <- contrasts.fit(lmfit.KOPTK1, cont.matrix.KOPTK1)
+
+lmfit.cont.ebayes.KOPTK1 <- eBayes(lmfit.cont.KOPTK1)
+
+```
+
+```{r annotateMatrix}
+dfAnnotations <- annotateMatrix(rownames(lmfit.cont.ebayes.KOPTK1), 
+                                hgu133plus2.db, c("ALIAS", "ENSEMBL"))
+
+lmfit.cont.ebayes.KOPTK1$genes <- dfAnnotations
+
+```
+
+**Top expressed genes**
+```{r topExprGenesKOPTK1}
+toptableIQR.KOPTK1 <- topTable(lmfit.cont.ebayes.KOPTK1, 
+                        number = dim(exprs(esetIQR.KOPTK1))[1], 
+                          adjust.method = "BH", sort.by = "logFC")
+
+tableIQR.005.KOPTK1 <- subset(toptableIQR.KOPTK1, toptableIQR.KOPTK1$adj.P.Val <= 0.05)
+
+# knitr::kable(head(tableIQR.005.KOPTK1),caption = "Top expressed genes KOPT-K1") %>%
+#   kable_styling(latex_options = c("hold_position"),position = "center") 
+
+## añadir columna symbol
+
+
+tableIQR.005.KOPTK1 <- tableIQR.005.KOPTK1[order(tableIQR.005.KOPTK1$logFC, decreasing = TRUE),]
+
+DT::datatable(tableIQR.005.KOPTK1)
+```
+
+```{r testViolinPlots}
+boxplot(exprs(esetIQR.KOPTK1)["209921_at",] ~ dfMetadata.KOPTK1$Condition)
+
+vioplot::vioplot(exprs(esetIQR.KOPTK1)["1554023_s_at",] ~ dfMetadata.KOPTK1$Condition)
+
+x <- searchGeneExprSet("NOTCH1", esetIQR.KOPTK1, genesMetadata.All)
+
+df <- data.frame(reshape::melt(x[1,]), 
+                 Condition = dfMetadata.KOPTK1$Condition)
+ggplot(df, aes(x = Condition, y = value, fill = Condition)) + geom_violin(trim = FALSE) + geom_jitter(shape=16, position=position_jitter(0.2)) + geom_boxplot(width=0.1) +
+  ggtitle("NOTCH1-1")
+
+df <- data.frame(reshape::melt(x[2,]), 
+                 Condition = dfMetadata.KOPTK1$Condition)
+ggplot(df, aes(x = Condition, y = value, fill = Condition)) + geom_violin(trim = FALSE) + geom_jitter(shape=16, position=position_jitter(0.2)) + geom_boxplot(width=0.1) + 
+  ggtitle("NOTCH1-2")
+
+# exprs(esetIQR.KOPTK1)["225285_at",] %>% 
+#   pivot_longer(key="Condition", value="Val") %>%
+#   ggplot( aes(x=MesureType, y=Val, fill=MesureType)) +
+#     geom_violin()
+```
+
+```{r}
+x <- searchGeneExprSet("Myc-bp2", esetIQR.KOPTK1, genesMetadata.All, "ALIAS")
+
+df <- data.frame(reshape::melt(x[1,]), 
+                 Condition = dfMetadata.KOPTK1$Condition)
+ggplot(df, aes(x = Condition, y = value, fill = Condition)) + geom_violin(trim = FALSE) + geom_jitter(shape=16, position=position_jitter(0.2)) + geom_boxplot(width=0.1) +
+  ggtitle("MYC")
+
+```
+
+**volano plot**
+
+Tienes que meterle límites y pintar en función de estos.
+```{r}
+volcanoplot(lmfit.cont.ebayes.KOPTK1, highlight = 5, 
+            style = "B-statistic", names = lmfit.cont.ebayes.KOPTK1$genes$ALIAS)
+```
+
+
+**Preguntar**
+
+```{r eval=FALSE}
+vv <- voomWithQualityWeights(esetIQR.KOPTK1, design.KOPTK1, plot = TRUE)
+```
+
+
+
+**volcanoplot y maplot**
+
+<https://www.biostars.org/p/306137/>
+``voomWithQualityWeights``
+
+#### Heatmap expresión diferencial
+
+<https://davetang.org/muse/2018/05/15/making-a-heatmap-in-r-with-the-pheatmap-package/>
+
+La idea de un heatmap es mmostrar cada condición y ver cómo los x genes se 
+expresan diferencialmente entre una condición y otra. Echárle un ojo a lo que
+hace Morpheus e intentar replicarlo con esta función.
+
+##### HPB-ALL
+
+```{r, fig.asp=30}
+## igual debería cambiarle el nombre a las filas, porque hacer esto es un coñazo
+## creo que tengo que hacer un zscore para que las diferencias sean reales
+
+diffExp <- data.frame(probes = rownames(tableIQR.005.HPALL),
+                      symbol = tableIQR.005.HPALL$ALIAS)
+X <- exprs(esetIQR.HPBALL)[diffExp$probes,]
+rownames(X) <- diffExp$symbol
+# brewer.pal(11,"RdBu")
+pheatmap(X, color = colorRampPalette(rev(brewer.pal(n = 7, name =
+                                   "RdBu")))(50),
+         scale = "none",
+         annotation_col = dfMetadata.HPBALL[, "Condition", drop = FALSE],
+         cexRow = 0.7, cutree_cols = 2, fontsize = 6)
+
+```
+
+
+##### KOPTK1
+
+```{r fig.asp=2}
+
+diffExp <- rownames(head(tableIQR.005.KOPTK1, 50))
+
+pheatmap(exprs(esetIQR.KOPTK1)[diffExp,], color = brewer.pal(11,"RdBu"),
+         annotation_col = dfMetadata.KOPTK1[, "Condition", drop = FALSE],
+         cutree_cols = 2)
+
+```
+
+```{r, fig.asp=2}
+diffExp <- rownames(head(tableIQR.005.KOPTK1, 100))
+
+pheatmap(exprs(esetIQR.KOPTK1)[diffExp,], 
+         color = rev(brewer.pal(11,"RdBu")),
+         annotation_col = dfMetadata.KOPTK1[, "Condition", drop = FALSE],
+         cutree_cols = 2)
+```
+
+
+
+### GSEA
+
+#### Generación de datos para GSEA
+
+## Dudas
+
+* Qué hacemos ocn los NAs: podemos hacer lo de biomaRt, preguntar. 
+
+      
