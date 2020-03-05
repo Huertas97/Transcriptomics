@@ -1,0 +1,13 @@
+# GREAT version 4.0.4	Species assembly: hg19	Association rule: Basal+extension: 5000 bp upstream, 1000 bp downstream, 1000000 bp max extension, curated regulatory domains included
+AIM2	E1 (+61191), E1 (+65891)
+CARD8	E1 (-18980), E1 (-14780), E1 (-8380), E1 (+37020)
+CASP1	E1 (-9024), E1 (-8024), E1 (+176), E1 (+1176), E1 (+2776)
+CASP4	E1 (+1563), E1 (+51463)
+CASP5	E1 (-10805), E1 (-9205)
+GSDMD	E1 (+123), E1 (+5323), E1 (+15723)
+NLRC4	E1 (+1123), E1 (+3423)
+NLRP1	E1 (-223)
+NLRP3	E1 (-751)
+NLRP6	E1 (-9570)
+PYCARD	E1 (+613)
+
