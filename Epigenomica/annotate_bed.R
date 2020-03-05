@@ -3,7 +3,7 @@ title_str <- 'Status'
 
 #Load BED file
 #Fichero de prueba solo con 2000 lineas del fichero de segmentos del Monocito 1.
-dm_regions = read_regions(con = 'Modelo_11_estados/Monocyte1_prueba.bed', genome = 'hg19', format = 'bed',
+dm_regions = read_regions(con = 'ficheros_prueba/Monocyte1_prueba.bed', genome = 'hg19', format = 'bed',
                           rename_name = title_str)
 
 # Select annotations for intersection with regions
