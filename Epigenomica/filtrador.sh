@@ -56,13 +56,25 @@ do
         
         chr=$(echo $file | grep -oE "chr[0-9MX][0-9]?") # cogemos solo el cromosoma del nombre, siendo num o letra permitiendo un segundo digito con ? (0 o ninguno)
         # echo $chr
+        # Generamos el archivo filtrado por cada cromosoma. Genero un archivo para cada cromosoma
+        # De las prob posteriores nos quedamos co la tercera fila para adelante quitando el encabezado.
+        # Añadimos dos columnas al final que van en ventanas de 200 en 200
+        # Nos quedamos luego con las líneas que tienen un valor de probabilidad superior o igual al filtro deseado. El estado es la columna que miramos
+        # Luego reconstruyo el documento quedandome solo con el chr, las posiciones y el estado
         tail -n +3 ./RESULTS/Modelo_11_estados/POSTERIOR/$file | awk 'BEGIN {start=0; end=200; line=1} {OFS="\t"; print $0, start,end*line; start=end*line; line+=1}' | awk -v filter=$filter -v estado=$estado '{OFS="\t"; if ($estado >= filter) print $0 }' |  awk -v chr=$chr -v estado=$estado '{OFS="\t"; print chr,$12,$13, "E"estado}' > "bed_E"$estado"_filtrado_"$filter"/by_chr/Monocyte_"$i"_E"$estado"_f"$filter"_"$chr".bed"
-        # Informamos del archivo que se lee y los segmentos por cada cromosoma. 
+        
+        # Hacemos un summary por cada cromosoma y lo añadimos a un fichero summary para cada monocito
         echo $file
         wc -l "bed_E"$estado"_filtrado_"$filter"/by_chr/Monocyte_"$i"_E"$estado"_f"$filter"_"$chr".bed" | tr "_" "." | tr " " "." | cut -d "." -f1,12 | tr "." "\t"
         wc -l "bed_E"$estado"_filtrado_"$filter"/by_chr/Monocyte_"$i"_E"$estado"_f"$filter"_"$chr".bed" | tr "_" "." | tr " " "." | cut -d "." -f1,12 | tr "." "\t" >> "bed_E"$estado"_filtrado_"$filter"/by_chr/Monocyte_"$i"chr_summary.txt"
+        
+        # Generamos el archivo filtrado por monocito uniendo todos los cromosomas. Añado el cromosoma de la iteracion a uno global
         cat "bed_E"$estado"_filtrado_"$filter"/by_chr/Monocyte_"$i"_E"$estado"_f"$filter"_"$chr".bed" >> "bed_E"$estado"_filtrado_"$filter"/Monocyte_"$i"_E"$estado"_f"$filter".bed"
     done
 
+    # Hacemos la media del summary de ambos monocitos
+    paste "bed_E"$estado"_filtrado_"$filter"/by_chr/"Monocyte_1chr_summary.txt "bed_E"$estado"_filtrado_"$filter"/by_chr/"Monocyte_2chr_summary.txt | awk 'BEGIN{n=0; OFS="\t"} {n=($1+$3)/2; print n,$2; n=0}' > "bed_E"$estado"_filtrado_"$filter"/by_chr/02_summary_segments.txt"
+
+    # Ahora hacemos la interseccion de los segmentos de todo el genoma de ambos monocitos 
     bedtools intersect  -a "bed_E"$estado"_filtrado_"$filter"/Monocyte_1_E"$estado"_f"$filter".bed" -b "bed_E"$estado"_filtrado_"$filter"/Monocyte_2_E"$estado"_f"$filter".bed" -sorted > "bed_E"$estado"_filtrado_"$filter"/intersect_E"$estado"_f"$filter".bed"
 done
