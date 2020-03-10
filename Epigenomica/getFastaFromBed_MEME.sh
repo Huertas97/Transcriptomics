@@ -1,5 +1,10 @@
 #!/bin/bash
 
+#Necesario el fichero con el genoma.
+#Para descargarlo:
+#     wget http://hgdownload.soe.ucsc.edu/goldenPath/hg19/bigZips/hg19.fa.gz 
+#     gzip -d hg19.fa.gz
+
 file_in=$1
 file_out=$2
 
