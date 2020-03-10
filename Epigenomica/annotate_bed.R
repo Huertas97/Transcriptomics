@@ -17,7 +17,7 @@ annotations = build_annotations(genome = 'hg19', annotations = annots)
 dm_annotated = annotate_regions(
   regions = dm_regions,
   annotations = annotations,
-  minoverlap = 1L, #Overlap of annotations
+  minoverlap = 100L, #Overlap of annotations, f=-0.5
   ignore.strand = TRUE,
   quiet = FALSE)
 # A GRanges object is returned
@@ -38,6 +38,7 @@ dm_random_regions = randomize_regions(
 dm_random_annotated = annotate_regions(
   regions = dm_random_regions,
   annotations = annotations,
+  minoverlap = 100L, #Overlap of annotations, f=-0.5
   ignore.strand = TRUE,
   quiet = TRUE)
 
