@@ -134,11 +134,12 @@ dataAnnotatr <- read.csv(file.path(dataPath, dirO.7, "annotatr_results_E1_0.7.cs
 ## Aproximación 1: cogemos todos los genes
 
 ```{r allGenes}
-allGenes <- na.omit(unique(dataAnnotatr$annot.symbol))
+allGenesDF <- data.frame(ENTREZID = dataAnnotatr$annot.gene_id,
+                       SYMBOL = dataAnnotatr$annot.symbol)
 
-allGenesDF <- bitr(allGenes, fromType = "SYMBOL",
-                      toType = c("ENSEMBL", "ENTREZID"),
-                      OrgDb = org.Hs.eg.db)
+# allGenesDF <- bitr(allGenes, fromType = "SYMBOL",
+#                       toType = c("ENSEMBL", "ENTREZID"),
+#                       OrgDb = org.Hs.eg.db)
 ```
 
 ### ``clusterProfiler``
@@ -353,12 +354,13 @@ DT::datatable(pho_KEGGresult[[1]])
 
 ```{r promoterGenes}
 genesPromoter <- dataAnnotatr %>% filter(grepl("^(promoter).*", annot.id),
-                                         !is.na(annot.symbol))
-genesPromoter <- unique(genesPromoter$annot.symbol)
-
-genesPromoterDF <- bitr(genesPromoter, fromType = "SYMBOL",
-                      toType = c("ENSEMBL", "ENTREZID"),
-                      OrgDb = org.Hs.eg.db)
+                                         !is.na(annot.gene_id))
+genesPromoterDF <- data.frame(ENTREZID = genesPromoter$annot.gene_id,
+                              SYMBOL = genesPromoter$annot.symbol)
+ 
+# genesPromoterDF <- bitr(genesPromoter, fromType = "SYMBOL",
+#                       toType = c("ENSEMBL", "ENTREZID"),
+#                       OrgDb = org.Hs.eg.db)
 ```
 
 
